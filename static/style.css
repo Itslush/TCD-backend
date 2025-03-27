@@ -165,7 +165,8 @@ h1 {
 
 .value span {
     transition: opacity var(--transition-fast), transform var(--transition-fast);
-    display: inline-block; /* Needed for transform */
+    display: inline-block;
+    will-change: opacity, transform;
 }
 
 /* Update Animation - Subtle Scale/Opacity */
