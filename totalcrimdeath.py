@@ -1,336 +1,292 @@
-from flask import Flask, request, jsonify
-import json
-import threading
+# filename: botnet_api.py
+from flask import Flask, request, jsonify, render_template
 import time
-import uuid
-import os
+import threading
+import logging
+import json # For pretty printing JSON on dashboard
 
 app = Flask(__name__)
+# Configure logging (optional but recommended)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-shared_data = {}
-server_reservations = {}
-bot_data = {}
+# --- Configuration ---
+SERVER_RESERVATION_TIMEOUT = 30  # Seconds before an initial 'reserved' status expires
+IN_SERVER_TIMEOUT_SECONDS = 30 * 60 # Seconds before an 'active' or 'flinging' status expires
+CLEANUP_INTERVAL = 60  # Check for stale reservations every 60 seconds
 
-# Constants
-SERVER_RESERVATION_TIMEOUT = 30
-MAX_POPULATION = 37
-MIN_POPULATION = 15
-REGION_PRIORITY = ["DE", "NL", "GB", "FR", "US"]
-LOCK_TIMEOUT = 60
+# --- Shared State (In-Memory) ---
+# Using a dictionary to hold server reservations and reported flings
+shared_data = {
+    "serverReservations": {}
+}
+# Simple counter for total reported flings
+# NOTE: This count relies entirely on the Lua script calling /stats/increment_fling
+total_flings_reported = 0
+# Use a lock to ensure thread safety when accessing shared_data and total_flings_reported
+data_lock = threading.Lock()
 
 # --- Helper Functions ---
-
-def acquire_lock(lock_name, timeout=LOCK_TIMEOUT):
-    lock_file = f"{lock_name}.lock"
-    start_time = time.time()
-    while os.path.exists(lock_file):
-        if time.time() - start_time >= timeout:
-            raise TimeoutError(f"Timeout acquiring lock for {lock_name}")
-        time.sleep(0.1)
-    with open(lock_file, "w") as f:
-        f.write(str(time.time()))
-
-def release_lock(lock_name):
-    lock_file = f"{lock_name}.lock"
-    try:
-        os.remove(lock_file)
-        print(f"Lock released successfully: {lock_name}")
-    except FileNotFoundError:
-        print(f"No lock file found to release: {lock_name}")
-    except OSError as e:
-        print(f"Error releasing lock: {lock_name} - {e}")
-
-def load_shared_data_from_file():
-    data_file = r"B:\flingbotapi\shared_data.json"  # Explicit Windows path
-    try:
-        if os.path.exists(data_file):
-            with open(data_file, "r") as f:
-                data = json.load(f)
-            print("Loaded shared data from file.")
-            return data
-        else:
-            print("Shared data file not found, initializing.")
-            return {"serverReservations": {}, "accounts": []}
-    except Exception as e:
-        print(f"Error loading shared data from file: {e}.  Returning empty dictionary.")
-        return {"serverReservations": {}, "accounts": []}
-
-def save_shared_data_to_file(data):
-    data_file = r"B:\flingbotapi\shared_data.json" # Explicit Windows path
-    try:
-        os.makedirs(os.path.dirname(data_file), exist_ok=True)
-        with open(data_file, "w") as f:
-            json.dump(data, f, indent=4)
-        print("Saved shared data to file.")
-    except Exception as e:
-        print(f"Error saving shared data to file: {e}")
-
-def get_reserved_servers():
+def is_reservation_stale(reservation):
+    """Checks if a reservation is expired based on its status and timestamp."""
     now = time.time()
-    valid_reservations = {}
+    timestamp = reservation.get('timestamp', 0)
+    status = reservation.get('status', 'reserved')
 
-    acquire_lock("shared_data")
-    try:
-        shared_data = load_shared_data_from_file()
+    if status == 'reserved' and (now - timestamp > SERVER_RESERVATION_TIMEOUT):
+        return True, f"Initial reservation timed out (>{SERVER_RESERVATION_TIMEOUT}s)"
+    # Consider 'active' and 'flinging' reservations stale after IN_SERVER_TIMEOUT_SECONDS
+    if status in ['active', 'flinging'] and (now - timestamp > IN_SERVER_TIMEOUT_SECONDS):
+         return True, f"'{status}' status timed out (>{IN_SERVER_TIMEOUT_SECONDS / 60:.1f} mins)"
+    # Could add checks for very old 'reserved' as a failsafe, but timeouts should cover most cases
+    return False, ""
+
+def cleanup_stale_reservations():
+    """Background thread function to periodically remove stale reservations."""
+    while True:
+        time.sleep(CLEANUP_INTERVAL)
+        removed_count = 0
+        logging.debug("Cleanup: Starting check for stale reservations...")
+        with data_lock:
+            reservations = shared_data.get("serverReservations", {})
+            # Iterate over a copy of the keys to allow safe deletion during iteration
+            stale_ids_to_remove = []
+            for server_id, res in reservations.items():
+                is_stale, reason = is_reservation_stale(res)
+                if is_stale:
+                    logging.info(f"Cleanup: Marking stale reservation for {server_id} by {res.get('botName', 'N/A')}. Reason: {reason}")
+                    stale_ids_to_remove.append(server_id)
+
+            # Remove identified stale reservations
+            for server_id in stale_ids_to_remove:
+                if server_id in reservations:
+                    del reservations[server_id]
+                    removed_count += 1
+
+        if removed_count > 0:
+            logging.info(f"Cleanup: Removed {removed_count} stale reservations.")
+        else:
+             logging.debug("Cleanup: No stale reservations found.")
+
+
+# --- API Endpoints ---
+
+@app.route('/reservations', methods=['GET'])
+def get_reservations():
+    """Returns the current valid (non-stale) reservations."""
+    with data_lock:
+        valid_reservations = {}
+        for server_id, res in shared_data.get("serverReservations", {}).items():
+             is_stale, _ = is_reservation_stale(res)
+             if not is_stale:
+                 valid_reservations[server_id] = res
+        return jsonify(valid_reservations)
+
+@app.route('/reservations/reserve', methods=['POST'])
+def reserve_server():
+    """Attempts to reserve a server for a bot. Releases bot's old reservation if any."""
+    data = request.get_json()
+    if not data or 'serverId' not in data or 'botName' not in data:
+        return jsonify({"error": "Missing serverId or botName"}), 400
+
+    server_id = data['serverId']
+    bot_name = data['botName']
+    region = data.get('region', 'Unknown')
+    initial_player_count = data.get('initialPlayerCount', -1)
+
+    with data_lock:
         reservations = shared_data.get("serverReservations", {})
 
-        for server_id, reservation_info in reservations.items():
-            if now - reservation_info["timestamp"] <= SERVER_RESERVATION_TIMEOUT:
-                valid_reservations[server_id] = reservation_info
-            else:
-                print(f"Reservation for Server ID: {server_id} by Bot: {reservation_info['botName']} timed out.")
-    finally:
-        release_lock("shared_data")
-    return valid_reservations
+        # Check if bot already has *another* reservation and release it
+        existing_reservation_to_release = None
+        for s_id, res in reservations.items():
+            if res.get("botName") == bot_name and s_id != server_id:
+                logging.warning(f"Reserve: Bot {bot_name} reserving {server_id} but already has {s_id}. Releasing old reservation.")
+                existing_reservation_to_release = s_id
+                break # Release only one old one per request
 
-def select_best_server(server_data, reserved_servers):
-    for region in REGION_PRIORITY:
-        if "Casual" in server_data and region in server_data["Casual"]:
-            casual_servers = server_data["Casual"][region]
-            for server_info in casual_servers:
-                if server_info["serverId"] not in reserved_servers:
-                    return server_info
-    return None
+        if existing_reservation_to_release:
+             if existing_reservation_to_release in reservations:
+                 del reservations[existing_reservation_to_release]
 
-def add_or_update_reservation(server_id, bot_name, server_region, initial_player_count):
-    acquire_lock("shared_data")
-    try:
-        shared_data = load_shared_data_from_file()
-        shared_data["serverReservations"] = shared_data.get("serverReservations", {})
+        # Check if the target server is currently reserved (and not stale) by someone else
+        current_reservation = reservations.get(server_id)
+        if current_reservation:
+             is_stale, _ = is_reservation_stale(current_reservation)
+             # Only block if the current reservation isn't stale and belongs to another bot
+             if not is_stale and current_reservation.get("botName") != bot_name :
+                 logging.warning(f"Reserve Conflict: {server_id} already reserved by {current_reservation.get('botName')}")
+                 return jsonify({"error": "Server already reserved", "reservedBy": current_reservation.get('botName')}), 409 # Conflict status code
 
-        bot_reservations = {}
-        for existing_server_id, reservation in shared_data["serverReservations"].items():
-            if reservation["botName"] == bot_name:
-                bot_reservations.setdefault(bot_name, []).append(existing_server_id)
-
-        if bot_name in bot_reservations and len(bot_reservations[bot_name]) >= 1:
-            print(f"Bot {bot_name} already has a reservation. Cannot reserve another.")
-            return False, "Bot already has a reservation"
-
-        if server_id in shared_data["serverReservations"]:
-            print("Server already reserved.")
-            return False, "Server already reserved"
-
-        shared_data["serverReservations"][server_id] = {
+        # Reserve the server (or update if the bot already owned it but maybe status was weird)
+        new_reservation = {
             "serverId": server_id,
             "botName": bot_name,
             "timestamp": time.time(),
             "status": "reserved",
-            "region": server_region,
+            "region": region,
             "initialPlayerCount": initial_player_count,
-            "currentPlayerCount": None,
+            "currentPlayerCount": None # Will be set on update
         }
-        save_shared_data_to_file(shared_data)
-        return True, "Reservation successful"
-    finally:
-        release_lock("shared_data")
-    return False,
+        reservations[server_id] = new_reservation
+        logging.info(f"Reserve Success: {bot_name} reserved {server_id}")
+        return jsonify(new_reservation), 201 # HTTP 201 Created
 
-def update_player_count(server_id, player_count):
-    acquire_lock("shared_data")
-    try:
-        shared_data = load_shared_data_from_file()
-        if "serverReservations" in shared_data and server_id in shared_data["serverReservations"]:
-            shared_data["serverReservations"][server_id]["currentPlayerCount"] = player_count
-            shared_data["serverReservations"][server_id]["status"] = "active"
-            shared_data["serverReservations"][server_id]["timestamp"] = time.time()
-            save_shared_data_to_file(shared_data)
-            return True
+@app.route('/reservations/update', methods=['PUT', 'PATCH'])
+def update_reservation():
+    """Updates the status/heartbeat/playercount of a reservation. Can create if missing."""
+    data = request.get_json()
+    if not data or 'serverId' not in data or 'botName' not in data:
+        return jsonify({"error": "Missing serverId or botName"}), 400
+
+    server_id = data['serverId']
+    bot_name = data['botName']
+    new_status = data.get('status') # e.g., 'active' or 'flinging'
+    current_player_count = data.get('currentPlayerCount') # Integer
+
+    # Validate status if provided
+    if new_status is not None and new_status not in ['active', 'flinging']:
+         return jsonify({"error": "Invalid status provided. Must be 'active' or 'flinging'."}), 400
+
+    with data_lock:
+        reservations = shared_data.get("serverReservations", {})
+        current_reservation = reservations.get(server_id)
+
+        if not current_reservation:
+            # If update is called for a server not in reservations, create it (robustness for heartbeat)
+            logging.warning(f"Update: Reservation for {server_id} by {bot_name} not found. Creating based on update data.")
+            new_reservation = {
+                "serverId": server_id,
+                "botName": bot_name,
+                "timestamp": time.time(),
+                "status": new_status or "active", # Default to active if creating and no status given
+                "region": data.get('region', 'Unknown'), # Try to get region if provided
+                "initialPlayerCount": current_player_count, # Best guess based on current count
+                "currentPlayerCount": current_player_count
+            }
+            reservations[server_id] = new_reservation
+            return jsonify(new_reservation), 201 # Created
+
+        # Verify ownership if reservation exists
+        if current_reservation.get("botName") != bot_name:
+            logging.error(f"Update Auth Fail: {bot_name} tried to update reservation for {server_id} owned by {current_reservation.get('botName')}")
+            return jsonify({"error": "Reservation owned by another bot"}), 403 # Forbidden
+
+        # Update fields if provided and changed
+        updated = False
+        if new_status is not None and current_reservation.get('status') != new_status:
+             current_reservation['status'] = new_status
+             updated = True
+        if current_player_count is not None and current_reservation.get('currentPlayerCount') != current_player_count:
+             current_reservation['currentPlayerCount'] = current_player_count
+             updated = True
+
+        # Always update the timestamp to keep the reservation alive
+        current_reservation['timestamp'] = time.time()
+
+        if updated:
+             logging.info(f"Update Success: {bot_name} updated {server_id} (status={current_reservation['status']}, players={current_reservation['currentPlayerCount']})")
         else:
-            print("Server ID does not have a reservation")
-            return False
-    finally:
-        release_lock("shared_data")
+             logging.debug(f"Heartbeat Received: {bot_name} for {server_id} (status={current_reservation['status']}, players={current_reservation['currentPlayerCount']})")
 
-def set_server_status(server_id, status):
-    acquire_lock("shared_data")
-    try:
-        shared_data = load_shared_data_from_file()
-        if "serverReservations" in shared_data and server_id in shared_data["serverReservations"]:
-            shared_data["serverReservations"][server_id]["status"] = status
-            save_shared_data_to_file(shared_data)
-    finally:
-        release_lock("shared_data")
+        return jsonify(current_reservation), 200 # OK
 
-def release_server_reservation(server_id, bot_name):
-    acquire_lock("shared_data")
-    try:
-        shared_data = load_shared_data_from_file()
-        if ("serverReservations" in shared_data and
-            server_id in shared_data["serverReservations"] and
-            shared_data["serverReservations"][server_id]["botName"] == bot_name):
-
-            del shared_data["serverReservations"][server_id]
-            save_shared_data_to_file(shared_data)
-            print(f"Reservation released for Server ID: {server_id}")
-            return True
-        else:
-            print(f"No reservation found for Server ID: {server_id} by bot {bot_name} to release.")
-            return False
-    finally:
-        release_lock("shared_data")
-
-def get_server_reservation_by_botname(bot_name):
-    acquire_lock("shared_data")
-    try:
-        shared_data = load_shared_data_from_file()
-        if "serverReservations" in shared_data:
-            for server_id, reservation_data in shared_data["serverReservations"].items():
-                if(reservation_data["botName"] == bot_name):
-                    return reservation_data
-        return None
-    finally:
-        release_lock("shared_data")
-# --- API Endpoints ---
-@app.route('/register', methods=['POST'])
-def register_client():
-    print("--> /register endpoint hit") # Added log at start of function
+@app.route('/reservations/release', methods=['DELETE'])
+def release_reservation():
+    """Releases a reservation if held by the requesting bot."""
     data = request.get_json()
-    print(f"--> Received data: {data}") # Log received data
+    if not data or 'serverId' not in data or 'botName' not in data:
+        return jsonify({"error": "Missing serverId or botName"}), 400
 
-    if not data or "botName" not in data:
-        error_message = "Invalid request data. 'botName' is required."
-        print(f"--> Error: {error_message}") # Log error
-        return jsonify({"error": error_message}), 400
+    server_id = data['serverId']
+    bot_name = data['botName']
 
-    bot_name = data["botName"]
-    client_id = bot_name  # Use bot_name as client_id
-    bot_data[client_id] = {"botName": bot_name, "last_heartbeat": time.time()}
-    print(f"--> Registered client {client_id} with botName {bot_name}")
-    response_message = "Registration successful"
-    print(f"--> Sending response: {response_message}") # Log response
-    return jsonify({"message": response_message}), 201 # Return simple success JSON
+    with data_lock:
+        reservations = shared_data.get("serverReservations", {})
+        current_reservation = reservations.get(server_id)
 
-@app.route('/heartbeat', methods=['POST'])
-def receive_heartbeat():
-    data = request.get_json()
-    if not data or "client_id" not in data:
-        return jsonify({"error": "Invalid request data. 'client_id' is required."}), 400
+        if not current_reservation:
+            logging.warning(f"Release Not Found: Attempt to release non-existent reservation for {server_id} by {bot_name}")
+            # Not an error, just means nothing to release
+            return jsonify({"message": "Reservation not found or already released"}), 200 # OK (idempotent)
 
-    client_id = data["client_id"]
+        # Verify ownership before deleting
+        if current_reservation.get("botName") != bot_name:
+            logging.error(f"Release Auth Fail: {bot_name} tried to release reservation for {server_id} owned by {current_reservation.get('botName')}")
+            return jsonify({"error": "Reservation owned by another bot"}), 403 # Forbidden
 
-    if client_id not in bot_data:
-        return jsonify({"error": "Unregistered client"}), 401
+        # Delete the reservation
+        del reservations[server_id]
+        logging.info(f"Release Success: {bot_name} released reservation for {server_id}")
+        return jsonify({"message": "Reservation released successfully"}), 200 # OK
 
-    bot_data[client_id]["last_heartbeat"] = time.time()
+# --- Endpoint to increment fling counter ---
+@app.route('/stats/increment_fling', methods=['POST'])
+def increment_fling_count():
+    """Increments the total reported fling count. Called by Lua on successful fling."""
+    # Could add optional 'botName' or 'serverId' to the request body for logging purposes
+    # bot_name = request.json.get('botName') if request.json else None
+    global total_flings_reported
+    with data_lock:
+        total_flings_reported += 1
+        current_count = total_flings_reported
+    logging.info(f"Fling reported via API. Total now: {current_count}")
+    # Return the new total in the response
+    return jsonify({"message": "Fling count incremented", "totalFlings": current_count}), 200
 
-    player_count = data.get("playerCount")
-    server_id = data.get("serverId")
-    server_status = data.get("status")
-    bot_name = bot_data[client_id]["botName"]
 
-    if server_id:
-        reservation = get_server_reservation_by_botname(bot_name)
-        if(reservation != None and reservation["serverId"] == server_id):
-            if player_count is not None:
-                update_player_count(server_id, player_count)
-            if server_status is not None:
-                set_server_status(server_id, server_status)
-    return jsonify({"message": "Heartbeat received", "timestamp": time.time()}), 200
+# --- Dashboard Frontend Route ---
+@app.route('/', methods=['GET']) # Serve the dashboard at the root URL (e.g., http://your_ip:5000/)
+def dashboard():
+    """Calculates stats and serves the HTML dashboard template."""
+    bot_names = set()
+    server_count = 0
+    current_reservations_list = [] # To hold non-stale reservations for JSON view
 
-@app.route('/reserve_server', methods=['POST'])
-def reserve_server():
-    data = request.get_json()
-    if not data or "client_id" not in data or "serverData" not in data:
-        return jsonify({"error": "Invalid request data. 'client_id' and 'serverData' are required."}), 400
+    with data_lock:
+        # --- Calculate Stats ---
+        # Iterate through current reservations to find active bots and servers
+        reservations = shared_data.get("serverReservations", {})
+        for server_id, res in reservations.items():
+            is_stale, _ = is_reservation_stale(res)
+            # Only count non-stale reservations for current stats
+            if not is_stale:
+                bot_names.add(res.get("botName", "Unknown")) # Add bot name to a set to count unique bots
+                server_count += 1 # Increment server count
+                current_reservations_list.append(res) # Add the full reservation details for JSON view
 
-    client_id = data["client_id"]
-    server_data = data["serverData"]
-    bot_name = bot_data[client_id]["botName"]
+        bot_count = len(bot_names) # Total unique bot names found in active reservations
+        flings = total_flings_reported # Get the global fling counter
 
-    if client_id not in bot_data:
-         return jsonify({"error": "Unregistered client"}), 401
-
-    reserved_servers = get_reserved_servers()
-
-    best_server = select_best_server(server_data, reserved_servers)
-
-    if best_server:
-        server_id = best_server["serverId"]
-        server_region = best_server["region"]
-        initial_player_count = best_server["playerCount"]
-
-        success, message = add_or_update_reservation(server_id, bot_name, server_region, initial_player_count)
-
-        if success:
-            return jsonify({"message": message, "serverId": server_id, "region": server_region}), 200
-        else:
-            return jsonify({"error": message}), 409
-    else:
-        return jsonify({"error": "No suitable server found"}), 404
-
-@app.route('/release_server', methods=['POST'])
-def release_server():
-    data = request.get_json()
-    if not data or "client_id" not in data or "serverId" not in data:
-        return jsonify({"error": "Invalid request data. 'client_id' and 'serverId' are required."}), 400
-
-    client_id = data["client_id"]
-    server_id = data["serverId"]
-    bot_name = bot_data[client_id]["botName"]
-
-    if client_id not in bot_data:
-        return jsonify({"error": "Unregistered client"}), 401
-
-    if release_server_reservation(server_id, bot_name):
-        return jsonify({"message": "Server reservation released"}), 200
-    else:
-        return jsonify({"error": "Failed to release server reservation"}), 400
-
-@app.route('/get_reservations', methods=['GET'])
-def get_all_reservations():
-    reserved_servers = get_reserved_servers()
-    return jsonify(reserved_servers), 200
-
-@app.route('/get_shared_data', methods=['GET'])
-def get_shared_data():
-    acquire_lock("shared_data")
+    # --- Prepare Data for Template ---
     try:
-        shared_data = load_shared_data_from_file()
-        return jsonify(shared_data)
-    finally:
-        release_lock("shared_data")
+        # Sort the reservation list (e.g., by timestamp descending) for better viewing in JSON
+        current_reservations_list.sort(key=lambda x: x.get('timestamp', 0), reverse=True)
+        # Convert the list of reservation dictionaries to a pretty-printed JSON string
+        reservations_json_str = json.dumps(current_reservations_list, indent=2)
+    except Exception as e:
+        logging.error(f"Error preparing JSON for dashboard: {e}")
+        reservations_json_str = "[\n  {\n    \"error\": \"Could not generate JSON view.\"\n  }\n]"
 
-def cleanup_inactive_clients():
-    inactive_timeout = 60
-    now = time.time()
-    clients_to_remove = []
+    # Render the HTML template, passing the calculated data to it
+    # Flask looks for this file in a 'templates' subfolder by default
+    return render_template(
+        'dashboard.html',
+        bot_count=bot_count,
+        server_count=server_count,
+        total_flings=flings,
+        reservations_json=reservations_json_str
+    )
 
-    for client_id, data in bot_data.items():
-        if now - data["last_heartbeat"] > inactive_timeout:
-            clients_to_remove.append(client_id)
+# --- Start Background Cleanup Thread ---
+# daemon=True ensures the thread exits when the main app exits
+cleanup_thread = threading.Thread(target=cleanup_stale_reservations, daemon=True)
+cleanup_thread.start()
+logging.info("Background cleanup thread started.")
 
-    for client_id in clients_to_remove:
-        del bot_data[client_id]
-        print(f"Removed inactive client: {client_id}")
-
-def cleanup_reservations():
-    acquire_lock("shared_data")
-    try:
-        shared_data = load_shared_data_from_file()
-        if("serverReservations" in shared_data):
-            current_time = time.time()
-            for server_id in list(shared_data["serverReservations"].keys()):
-                if current_time - shared_data["serverReservations"][server_id]["timestamp"] > SERVER_RESERVATION_TIMEOUT:
-                    del shared_data["serverReservations"][server_id]
-                    print(f"Removing timed out reservation: {server_id}")
-        save_shared_data_to_file(shared_data)
-
-    finally:
-        release_lock("shared_data")
-
-def monitoring_thread():
-    while True:
-        cleanup_inactive_clients()
-        cleanup_reservations()
-        print(f"Active clients: {len(bot_data)}")
-
-        time.sleep(30)
-
-# --- Main Execution ---
+# --- Run Flask App ---
 if __name__ == '__main__':
-    shared_data = load_shared_data_from_file()
-    monitoring_thread = threading.Thread(target=monitoring_thread, daemon=True)
-    monitoring_thread.start()
-
-    app.run(debug=True, host='0.0.0.0', port=5000, threaded=True)
+    # host='0.0.0.0' makes the server accessible from other devices on the network
+    # port=5000 is the default Flask port, change if needed
+    # debug=False is important for production/stability; set to True only for development
+    logging.info("Starting Flask application...")
+    app.run(host='0.0.0.0', port=5000, debug=False)
