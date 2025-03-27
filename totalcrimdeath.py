@@ -11,9 +11,14 @@ SERVER_RESERVATION_TIMEOUT = 30
 IN_SERVER_TIMEOUT_SECONDS = 30 * 60
 CLEANUP_INTERVAL = 60
 
+SERVER_RESERVATION_TIMEOUT = 30
+IN_SERVER_TIMEOUT_SECONDS = 30 * 60
+CLEANUP_INTERVAL = 60
+
 shared_data = {
     "serverReservations": {}
 }
+
 total_flings_reported = 0
 data_lock = threading.Lock()
 
@@ -40,6 +45,7 @@ def cleanup_stale_reservations():
                 if is_stale:
                     logging.info(f"Cleanup: Marking stale reservation for {server_id} by {res.get('botName', 'N/A')}. Reason: {reason}")
                     stale_ids_to_remove.append(server_id)
+
             for server_id in stale_ids_to_remove:
                 if server_id in reservations:
                     del reservations[server_id]
@@ -52,8 +58,8 @@ def cleanup_stale_reservations():
 @app.route('/reservations', methods=['GET'])
 def get_reservations():
     with data_lock:
-        valid_reservations = {}
-        for server_id, res in shared_data.get("serverReservations", {}).items():
+        reservations = shared_data.get("serverReservations", {})
+        for server_id, res in reservations.items():
              is_stale, _ = is_reservation_stale(res)
              if not is_stale:
                  valid_reservations[server_id] = res
@@ -158,7 +164,6 @@ cleanup_thread = threading.Thread(target=cleanup_stale_reservations, daemon=True
 cleanup_thread.start()
 logging.info("Background cleanup thread started.")
 
-# --- Run Flask App ---
 if __name__ == '__main__':
     logging.info("Starting Flask application...")
     app.run(host='0.0.0.0', port=5000, debug=False)
