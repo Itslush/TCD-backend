@@ -22,25 +22,13 @@
     /* Transitions */
     --transition-fast: 0.2s ease;
     --transition-base: 0.3s ease;
-
-    /* Glass Effect Variables */
-    --glass-blur: 12px;
-    --container-bg-rgba: rgba(37, 37, 41, 0.65); /* --card-bg with alpha */
-    --stat-item-bg-rgba: rgba(26, 26, 29, 0.55); /* --bg-color with alpha */
-    --glass-border-color: rgba(255, 255, 255, 0.1); /* Subtle light border */
 }
 
 /* --- Global Styles --- */
 body {
     margin: 0;
     font-family: var(--font-family);
-    background-color: var(--bg-color); /* Fallback */
-    /* ADDED: Background image/gradient for blur effect to work on */
-    background-image: linear-gradient(135deg, rgba(76, 175, 80, 0.15) 0%, rgba(238, 68, 182, 0.1) 100%),
-                      radial-gradient(circle at top left, rgba(255, 255, 255, 0.05), transparent 50%);
-    background-size: cover;
-    background-attachment: fixed; /* Keep bg fixed */
-
+    background-color: var(--bg-color);
     color: var(--text-color);
     line-height: 1.6;
     display: flex;
@@ -73,19 +61,14 @@ h1::selection {
 
 /* --- Container --- */
 .container {
-    /* MODIFIED: Apply glass effect */
-    background-color: var(--container-bg-rgba);
-    backdrop-filter: blur(var(--glass-blur));
-    -webkit-backdrop-filter: blur(var(--glass-blur)); /* Safari support */
-    border: 1px solid var(--glass-border-color); /* Subtle glass edge */
-
+    background-color: var(--card-bg);
     padding: 30px 40px;
-    border-radius: 16px; /* Slightly more rounded for glass feel */
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); /* Adjusted shadow */
+    border-radius: 12px;
+    box-shadow: 0 8px 25px var(--shadow-color);
     max-width: 950px;
     width: 100%;
+    border: 1px solid var(--border-color);
     box-sizing: border-box;
-    /* Removed original border: border: 1px solid var(--border-color); */
 }
 
 /* --- Typography --- */
@@ -124,36 +107,26 @@ h1 {
 }
 
 .stat-item {
-    /* MODIFIED: Apply glass effect */
-    background-color: var(--stat-item-bg-rgba);
-    backdrop-filter: blur(calc(var(--glass-blur) * 0.75)); /* Slightly less blur */
-    -webkit-backdrop-filter: blur(calc(var(--glass-blur) * 0.75)); /* Safari */
-    border: 1px solid var(--glass-border-color); /* Subtle glass edge */
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); /* Optional: add subtle shadow */
-
+    background-color: var(--bg-color);
     padding: 25px 20px;
-    border-radius: 12px; /* More rounded */
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     min-height: 150px;
     text-align: center;
-    transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-base), background-color var(--transition-base);
-    /* Removed original border: border: 1px solid var(--border-color); */
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-base);
 }
 
 .stat-item:hover {
     transform: translateY(-4px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3); /* Enhanced shadow on hover */
-    border-color: rgba(255, 255, 255, 0.2); /* Slightly brighter border */
-    background-color: rgba(26, 26, 29, 0.7); /* Slightly less transparent */
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.35);
 }
 
 .stat-item.error {
-    /* MODIFIED: Error state with glass effect */
-    border-color: rgba(244, 67, 54, 0.5); /* Red border */
-    background-color: rgba(244, 67, 54, 0.2); /* Reddish transparent background */
-    /* Keep backdrop-filter */
+    border-color: var(--error-color);
+    background-color: rgba(244, 67, 54, 0.1);
 }
 
 .stat-item h2 {
@@ -223,9 +196,9 @@ h1 {
     right: 0;
     bottom: 0;
     border-radius: 4px;
-    background-color: rgba(58, 58, 64, 0.8); /* Use border color but slightly transparent for glass */
+    background-color: var(--border-color); /* Base color */
     /* Shimmer Effect */
-    background-image: linear-gradient(90deg, rgba(58, 58, 64, 0.8), rgba(74, 74, 80, 0.9), rgba(58, 58, 64, 0.8));
+    background-image: linear-gradient(90deg, var(--border-color), #4a4a50, var(--border-color));
     background-size: 200px 100%;
     background-repeat: no-repeat;
     animation: skeleton-loading 1.5s infinite linear;
@@ -241,7 +214,6 @@ h1 {
 }
 
 /* --- JSON View --- */
-/* NOTE: Not applying glass effect to JSON view for better code readability */
 .json-view {
     margin-top: 40px;
 }
@@ -252,7 +224,7 @@ h1 {
     align-items: center;
     margin-bottom: 15px;
     padding-bottom: 10px;
-    border-bottom: 1px solid var(--glass-border-color); /* Adjusted border */
+    border-bottom: 1px solid var(--border-color);
     flex-wrap: wrap;
     gap: 10px;
 }
@@ -306,7 +278,7 @@ h1 {
 pre#json-pre-container {
     padding: 0; /* Padding is inside container/entries */
     border-radius: 8px;
-    border: 1px solid var(--border-color); /* Keep darker border for code block */
+    border: 1px solid var(--border-color);
     max-height: 450px;
     overflow: auto;
     margin: 0;
@@ -359,7 +331,7 @@ pre#json-pre-container.hidden {
 
 /* Individual JSON entry block */
 .json-entry {
-    background-color: var(--code-bg-color); /* Theme background - KEEPING SOLID for readability */
+    background-color: var(--code-bg-color); /* Theme background */
     border-radius: 6px;
     padding: 15px;
     margin-bottom: 15px;
