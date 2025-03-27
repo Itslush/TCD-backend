@@ -1,8 +1,8 @@
-from flask import Flask, request, jsonify, render_template, url_for
+from flask import Flask, request, jsonify, render_template
 import time
 import threading
 import logging
-import json
+from collections import defaultdict
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 
@@ -13,14 +13,22 @@ IN_SERVER_TIMEOUT_SECONDS = 30 * 60
 CLEANUP_INTERVAL = 60
 
 shared_data = {
-    "serverReservations": {}
+    "serverReservations": {},
+    "last_stats_calc": {"time": 0, "fling_count": 0}
 }
 
 total_flings_reported = 0
 data_lock = threading.Lock()
 
+def redact_reservation_info(reservation):
+    if not reservation:
+        return None
+    redacted_res = reservation.copy()
+    if "botName" in redacted_res:
+        redacted_res["botName"] = "[REDACTED]"
+    return redacted_res
+
 def is_reservation_stale(reservation):
-    """Checks if a reservation is expired based on its status and timestamp."""
     now = time.time()
     timestamp = reservation.get('timestamp', 0)
     status = reservation.get('status', 'reserved')
@@ -32,7 +40,6 @@ def is_reservation_stale(reservation):
     return False, ""
 
 def cleanup_stale_reservations():
-    """Background thread function to periodically remove stale reservations."""
     while True:
         time.sleep(CLEANUP_INTERVAL)
         removed_count = 0
@@ -58,8 +65,8 @@ def cleanup_stale_reservations():
 
 @app.route('/reservations', methods=['GET'])
 def get_reservations():
-    """Returns the current valid (non-stale) reservations as a JSON list."""
     valid_reservations_list = []
+    redacted_list = []
     with data_lock:
         reservations = shared_data.get("serverReservations", {})
         for server_id, res in reservations.items():
@@ -68,11 +75,14 @@ def get_reservations():
                  valid_reservations_list.append(res)
 
     valid_reservations_list.sort(key=lambda x: x.get('timestamp', 0), reverse=True)
-    return jsonify(valid_reservations_list)
+
+    for res in valid_reservations_list:
+        redacted_list.append(redact_reservation_info(res))
+
+    return jsonify(redacted_list)
 
 @app.route('/reservations/reserve', methods=['POST'])
 def reserve_server():
-    """Attempts to reserve a server for a bot. Releases bot's old reservation if any."""
     data = request.get_json()
     if not data or 'serverId' not in data or 'botName' not in data:
         return jsonify({"error": "Missing serverId or botName"}), 400
@@ -99,7 +109,8 @@ def reserve_server():
              is_stale, _ = is_reservation_stale(current_reservation)
              if not is_stale and current_reservation.get("botName") != bot_name :
                  logging.warning(f"Reserve Conflict: {server_id} already reserved by {current_reservation.get('botName')}")
-                 return jsonify({"error": "Server already reserved", "reservedBy": current_reservation.get('botName')}), 409
+                 error_response = {"error": "Server already reserved", "reservedBy": "[REDACTED]"}
+                 return jsonify(error_response), 409
 
         new_reservation = {
             "serverId": server_id, "botName": bot_name, "timestamp": time.time(),
@@ -108,11 +119,10 @@ def reserve_server():
         }
         reservations[server_id] = new_reservation
         logging.info(f"Reserve Success: {bot_name} reserved {server_id}")
-        return jsonify(new_reservation), 201 # Created
+        return jsonify(redact_reservation_info(new_reservation)), 201
 
 @app.route('/reservations/update', methods=['PUT', 'PATCH'])
 def update_reservation():
-    """Updates the status/heartbeat/playercount of a reservation. Can create if missing."""
     data = request.get_json()
     if not data or 'serverId' not in data or 'botName' not in data:
         return jsonify({"error": "Missing serverId or botName"}), 400
@@ -125,6 +135,9 @@ def update_reservation():
     if new_status is not None and new_status not in ['active', 'flinging']:
          return jsonify({"error": "Invalid status. Must be 'active' or 'flinging'."}), 400
 
+    response_data = None
+    status_code = 200
+
     with data_lock:
         reservations = shared_data.get("serverReservations", {});
         current_reservation = reservations.get(server_id)
@@ -134,30 +147,38 @@ def update_reservation():
             new_reservation = {
                 "serverId": server_id, "botName": bot_name, "timestamp": time.time(),
                 "status": new_status or "active", "region": data.get('region', 'Unknown'),
-                "initialPlayerCount": current_player_count, "currentPlayerCount": current_player_count
+                "initialPlayerCount": current_player_count,
+                "currentPlayerCount": current_player_count
             }
             reservations[server_id] = new_reservation
-            return jsonify(new_reservation), 201
+            response_data = new_reservation
+            status_code = 201
+        else:
+            if current_reservation.get("botName") != bot_name:
+                logging.error(f"Update Auth Fail: {bot_name} tried to update {server_id} owned by {current_reservation.get('botName')}")
+                return jsonify({"error": "Reservation owned by another bot"}), 403
 
-        if current_reservation.get("botName") != bot_name:
-            logging.error(f"Update Auth Fail: {bot_name} tried to update {server_id} owned by {current_reservation.get('botName')}")
-            return jsonify({"error": "Reservation owned by another bot"}), 403
+            updated = False
+            if new_status is not None and current_reservation.get('status') != new_status:
+                current_reservation['status'] = new_status; updated = True
+            if current_player_count is not None and current_reservation.get('currentPlayerCount') != current_player_count:
+                current_reservation['currentPlayerCount'] = current_player_count; updated = True
 
-        updated = False
-        if new_status is not None and current_reservation.get('status') != new_status:
-            current_reservation['status'] = new_status; updated = True
-        if current_player_count is not None and current_reservation.get('currentPlayerCount') != current_player_count:
-            current_reservation['currentPlayerCount'] = current_player_count; updated = True
+            current_reservation['timestamp'] = time.time()
 
-        current_reservation['timestamp'] = time.time()
+            if updated:
+                logging.info(f"Update Success: {bot_name} updated {server_id} (status={current_reservation['status']}, players={current_reservation['currentPlayerCount']})")
+            else:
+                 logging.debug(f"Heartbeat Received: {bot_name} for {server_id}")
 
-        if updated: logging.info(f"Update Success: {bot_name} updated {server_id} (status={current_reservation['status']}, players={current_reservation['currentPlayerCount']})")
-        else: logging.debug(f"Heartbeat Received: {bot_name} for {server_id}")
-        return jsonify(current_reservation), 200
+            response_data = current_reservation
+            status_code = 200
+
+    redacted_response = redact_reservation_info(response_data)
+    return jsonify(redacted_response), status_code
 
 @app.route('/reservations/release', methods=['DELETE'])
 def release_reservation():
-    """Releases a reservation if held by the requesting bot."""
     data = request.get_json()
     if not data or 'serverId' not in data or 'botName' not in data:
         return jsonify({"error": "Missing serverId or botName"}), 400
@@ -171,7 +192,7 @@ def release_reservation():
 
         if not current_reservation:
             logging.warning(f"Release Not Found: {server_id} by {bot_name}")
-            return jsonify({"message": "Reservation not found or already released"}), 200 # OK
+            return jsonify({"message": "Reservation not found or already released"}), 200
 
         if current_reservation.get("botName") != bot_name:
             logging.error(f"Release Auth Fail: {bot_name} tried to release {server_id} owned by {current_reservation.get('botName')}")
@@ -183,7 +204,6 @@ def release_reservation():
 
 @app.route('/stats/increment_fling', methods=['POST'])
 def increment_fling_count():
-    """Increments the total reported fling count. Called by Lua on successful fling."""
     global total_flings_reported
     with data_lock:
         total_flings_reported += 1
@@ -193,31 +213,53 @@ def increment_fling_count():
 
 @app.route('/dashboard', methods=['GET'])
 def serve_dashboard_page():
-    """Serves the main HTML structure of the dashboard."""
     logging.info("Serving dashboard HTML page.")
     return render_template('dashboard.html')
 
 @app.route('/', methods=['GET'])
 def get_stats_data():
-    """Returns current summary stats as JSON for the frontend JavaScript."""
     bot_names = set()
     server_count = 0
+    bots_by_region = defaultdict(set)
+    now = time.time()
+
     logging.debug("Calculating stats for / endpoint.")
     with data_lock:
         reservations = shared_data.get("serverReservations", {})
         for server_id, res in reservations.items():
             is_stale, _ = is_reservation_stale(res)
             if not is_stale:
-                bot_names.add(res.get("botName", "Unknown"))
+                bot_name = res.get("botName", "UnknownBot")
+                region = res.get("region", "UnknownRegion")
+                bot_names.add(bot_name)
+                bots_by_region[region].add(bot_name)
                 server_count += 1
-        bot_count = len(bot_names)
-        flings = total_flings_reported
 
-    stats_data = {
-        "botCount": bot_count,
-        "serverCount": server_count,
-        "totalFlings": flings
-    }
+        bot_count = len(bot_names)
+        regional_bot_counts = {region: len(bots) for region, bots in bots_by_region.items()}
+
+        current_total_flings = total_flings_reported
+        last_calc = shared_data["last_stats_calc"]
+        time_diff = now - last_calc["time"]
+        fling_diff = current_total_flings - last_calc["fling_count"]
+
+        fling_rate_per_minute = 0.0
+        if last_calc["time"] > 0 and time_diff > 1:
+            flings_per_second = fling_diff / time_diff
+            fling_rate_per_minute = flings_per_second * 60
+            fling_rate_per_minute = max(0.0, fling_rate_per_minute)
+
+        shared_data["last_stats_calc"]["time"] = now
+        shared_data["last_stats_calc"]["fling_count"] = current_total_flings
+
+        stats_data = {
+            "botCount": bot_count,
+            "serverCount": server_count,
+            "totalFlings": current_total_flings,
+            "flingRatePerMinute": fling_rate_per_minute,
+            "botsPerRegion": regional_bot_counts
+        }
+
     logging.debug(f"Returning stats: {stats_data}")
     return jsonify(stats_data)
 
