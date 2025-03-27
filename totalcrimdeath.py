@@ -234,48 +234,46 @@ def increment_fling_count():
     return jsonify({"message": "Fling count incremented", "totalFlings": current_count}), 200
 
 
-# --- Dashboard Frontend Route ---
-@app.route('/', methods=['GET']) # Serve the dashboard at the root URL (e.g., http://your_ip:5000/)
-def dashboard():
-    """Calculates stats and serves the HTML dashboard template."""
-    bot_names = set()
-    server_count = 0
-    current_reservations_list = [] # To hold non-stale reservations for JSON view
-
-    with data_lock:
-        # --- Calculate Stats ---
-        # Iterate through current reservations to find active bots and servers
-        reservations = shared_data.get("serverReservations", {})
-        for server_id, res in reservations.items():
-            is_stale, _ = is_reservation_stale(res)
-            # Only count non-stale reservations for current stats
-            if not is_stale:
-                bot_names.add(res.get("botName", "Unknown")) # Add bot name to a set to count unique bots
-                server_count += 1 # Increment server count
-                current_reservations_list.append(res) # Add the full reservation details for JSON view
-
-        bot_count = len(bot_names) # Total unique bot names found in active reservations
-        flings = total_flings_reported # Get the global fling counter
-
-    # --- Prepare Data for Template ---
-    try:
-        # Sort the reservation list (e.g., by timestamp descending) for better viewing in JSON
-        current_reservations_list.sort(key=lambda x: x.get('timestamp', 0), reverse=True)
-        # Convert the list of reservation dictionaries to a pretty-printed JSON string
-        reservations_json_str = json.dumps(current_reservations_list, indent=2)
-    except Exception as e:
-        logging.error(f"Error preparing JSON for dashboard: {e}")
-        reservations_json_str = "[\n  {\n    \"error\": \"Could not generate JSON view.\"\n  }\n]"
-
-    # Render the HTML template, passing the calculated data to it
-    # Flask looks for this file in a 'templates' subfolder by default
-    return render_template(
-        'dashboard.html',
-        bot_count=bot_count,
-        server_count=server_count,
-        total_flings=flings,
-        reservations_json=reservations_json_str
-    )
+# --- NEW: Dashboard Frontend Route ---
+# @app.route('/', methods=['GET']) # Serve the dashboard at the root URL
+# def dashboard():
+#     """Serves the HTML dashboard."""
+#     bot_names = set()
+#     server_count = 0
+#     current_reservations_list = [] # For JSON display
+#
+#     with data_lock:
+#         # Calculate stats based on non-stale reservations
+#         reservations = shared_data.get("serverReservations", {})
+#         for server_id, res in reservations.items():
+#             is_stale, _ = is_reservation_stale(res)
+#             if not is_stale:
+#                 bot_names.add(res.get("botName", "Unknown"))
+#                 server_count += 1
+#                 current_reservations_list.append(res) # Add non-stale to list
+#
+#         bot_count = len(bot_names)
+#         flings = total_flings_reported # Get the global count
+#
+#     # Prepare data for the template
+#     try:
+#         # Sort by timestamp descending for JSON view?
+#         current_reservations_list.sort(key=lambda x: x.get('timestamp', 0), reverse=True)
+#         # Pretty print the JSON for display
+#         reservations_json_str = json.dumps(current_reservations_list, indent=2)
+#     except Exception as e:
+#         logging.error(f"Error preparing JSON for dashboard: {e}")
+#         reservations_json_str = "Error generating JSON view."
+#
+#     # Render the HTML template, passing the calculated data
+#     # THIS LINE CAUSES THE ERROR IF THE TEMPLATE IS MISSING
+#     # return render_template(
+#     #     'dashboard.html',
+#     #     bot_count=bot_count,
+#     #     server_count=server_count,
+#     #     total_flings=flings,
+#     #     reservations_json=reservations_json_str
+#     # )
 
 # --- Start Background Cleanup Thread ---
 # daemon=True ensures the thread exits when the main app exits
