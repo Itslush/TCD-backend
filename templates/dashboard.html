@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Operation: TCD</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Cube07 Botnet Status</h1>
+
+        <div class="stats-grid">
+            <div class="stat-item">
+                <h2>Bots Online</h2>
+                <p class="value"><span id="bot-count" class="loading">--</span></p>
+            </div>
+            <div class="stat-item">
+                <h2>Servers Occupied</h2>
+                <p class="value"><span id="server-count" class="loading">--</span></p>
+            </div>
+            <div class="stat-item">
+                <h2>Total Flings Reported</h2>
+                <p class="value"><span id="total-flings" class="loading">--</span></p>
+            </div>
+        </div>
+
+        <div class="json-view">
+            <h2>Live Server Reservations (Raw JSON)</h2>
+            <pre><code id="reservations-json" class="loading">Loading...</code></pre>
+        </div>
+    </div>
+
+    <script>
+        const botCountEl = document.getElementById('bot-count');
+        const serverCountEl = document.getElementById('server-count');
+        const totalFlingsEl = document.getElementById('total-flings');
+        const reservationsJsonEl = document.getElementById('reservations-json');
+
+        const UPDATE_INTERVAL = 7000;
+
+        async function updateData() {
+            console.log("Fetching updated data...");
+            try {
+                const statsResponse = await fetch('/');
+                if (!statsResponse.ok) {
+                    throw new Error(`Stats fetch failed: ${statsResponse.status}`);
+                }
+                const statsData = await statsResponse.json();
+
+                const reservationsResponse = await fetch('/reservations');
+                 if (!reservationsResponse.ok) {
+                    throw new Error(`Reservations fetch failed: ${reservationsResponse.status}`);
+                }
+                const reservationsData = await reservationsResponse.json();
+
+                updateUI(statsData, reservationsData);
+
+            } catch (error) {
+                console.error("Error fetching data:", error);
+                botCountEl.textContent = 'Error';
+                botCountEl.classList.add('loading');
+                serverCountEl.textContent = 'Error';
+                serverCountEl.classList.add('loading');
+                totalFlingsEl.textContent = 'Error';
+                totalFlingsEl.classList.add('loading');
+                reservationsJsonEl.textContent = `Error loading data:\n${error}`;
+                reservationsJsonEl.classList.add('loading');
+            }
+        }
+
+        function updateUI(stats, reservations) {
+            if (stats && typeof stats.botCount !== 'undefined') {
+                botCountEl.textContent = stats.botCount;
+                botCountEl.classList.remove('loading');
+            } else {
+                botCountEl.textContent = '?';
+            }
+
+            if (stats && typeof stats.serverCount !== 'undefined') {
+                serverCountEl.textContent = stats.serverCount;
+                serverCountEl.classList.remove('loading');
+            } else {
+                 serverCountEl.textContent = '?';
+            }
+
+             if (stats && typeof stats.totalFlings !== 'undefined') {
+                totalFlingsEl.textContent = stats.totalFlings;
+                totalFlingsEl.classList.remove('loading');
+            } else {
+                 totalFlingsEl.textContent = '?';
+            }
+
+            try {
+                reservationsJsonEl.textContent = JSON.stringify(reservations, null, 2);
+                reservationsJsonEl.classList.remove('loading');
+            } catch (e) {
+                console.error("Error stringifying reservations JSON:", e);
+                reservationsJsonEl.textContent = "Error displaying JSON data.";
+                reservationsJsonEl.classList.add('loading');
+            }
+        }
+
+        updateData();
+
+        setInterval(updateData, UPDATE_INTERVAL);
+    </script>
+</body>
+</html>
