@@ -10,6 +10,10 @@
     --shadow-color: rgba(0, 0, 0, 0.2);
     --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     --code-font-family: 'Consolas', 'Monaco', monospace;
+
+    --gradient-start: rgb(238, 68, 182);
+    --gradient-end: rgb(237, 147, 68);
+    --selection-bg: rgba(0, 123, 255, 0.7);
 }
 
 body {
@@ -121,11 +125,6 @@ h1 {
     transform: none !important;
 }
 
-/*.error {
-    color: var(--error-color) !important;
-    font-weight: bold;
-}*/
-
 .json-view {
     margin-top: 30px;
 }
@@ -174,7 +173,6 @@ h1 {
     display: none;
 }
 
-
 pre {
     padding: 20px;
     border-radius: 8px;
@@ -206,6 +204,25 @@ code.loading {
 .last-updated span {
     font-weight: 500;
     color: #aaa;
+}
+
+#reservations-json {
+    background: linear-gradient(to right, var(--gradient-start), var(--gradient-end));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    background-color: transparent;
+}
+
+#reservations-json span {
+    color: inherit !important;
+    background-color: transparent !important;
+}
+
+#reservations-json::selection {
+    background-color: var(--selection-bg);
+    color: var(--text-color) !important;
+    -webkit-text-fill-color: var(--text-color);
 }
 
 @media (max-width: 768px) {
