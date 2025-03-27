@@ -1,25 +1,30 @@
+/* --- Base Variables --- */
 :root {
-    --bg-color: #1a1a1d;
-    --card-bg: #2c2c31;
-    --text-color: #f0f0f0;
-    /* Keep original purple vars potentially for fallback or other elements */
-    --primary-color-fallback: #6f22c9;
-    --secondary-color-fallback: #9a4ef1;
-    --accent-color: #4CAF50;
-    --error-color: #f44336;
-    --border-color: #444;
-    --shadow-color: rgba(0, 0, 0, 0.2);
-    --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    --code-font-family: 'Consolas', 'Monaco', monospace;
+    --bg-color: #1a1a1d; /* Dark background */
+    --card-bg: #252529; /* Slightly lighter card background */
+    --text-color: #f0f0f0; /* Light text */
+    --text-muted-color: #a0a0a0; /* Dimmer text */
+    --border-color: #3a3a40; /* Subtle borders */
+    --accent-color: #4CAF50; /* Green accent for positive actions/indicators */
+    --error-color: #f44336; /* Red for errors */
+    --shadow-color: rgba(0, 0, 0, 0.3); /* Darker shadow for depth */
+    --highlight-bg: #3a3a40; /* Background for hover/active states */
 
-    /* Define the brand gradient */
-    --brand-gradient: linear-gradient(to right, rgb(238, 68, 182), rgb(237, 147, 68));
-    --selection-bg: rgba(0, 123, 255, 0.7);
+    /* Brand Gradient (Used more sparingly) */
+    --brand-gradient: linear-gradient(90deg, rgb(238, 68, 182) 0%, rgb(237, 147, 68) 100%);
+
+    /* Fonts */
+    --font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    --code-font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+
+    /* Transitions */
+    --transition-fast: 0.2s ease;
+    --transition-base: 0.3s ease;
 }
 
+/* --- Global Styles --- */
 body {
     margin: 0;
-    padding: 0;
     font-family: var(--font-family);
     background-color: var(--bg-color);
     color: var(--text-color);
@@ -31,161 +36,198 @@ body {
     box-sizing: border-box;
 }
 
+/* Selection styles */
+::selection {
+    background-color: rgba(var(--accent-color), 0.7);
+    color: var(--bg-color);
+}
+h1::selection {
+     background-color: rgba(238, 68, 182, 0.7); /* Use gradient start color */
+     color: var(--text-color) !important;
+     -webkit-text-fill-color: var(--text-color); /* Override gradient transparency */
+}
+.stat-item h2 i::selection {
+     background-color: rgba(238, 68, 182, 0.7);
+     color: var(--text-color) !important;
+     -webkit-text-fill-color: var(--text-color);
+}
+/* Selection for highlightjs needs to be specific */
+pre code ::selection {
+    background-color: rgba(79, 83, 91, 0.99); /* Match theme selection */
+    color: inherit; /* Keep theme color */
+}
+
+/* --- Container --- */
 .container {
     background-color: var(--card-bg);
-    padding: 25px 40px;
+    padding: 30px 40px;
     border-radius: 12px;
-    box-shadow: 0 5px 15px var(--shadow-color);
-    max-width: 900px;
+    box-shadow: 0 8px 25px var(--shadow-color);
+    max-width: 950px;
     width: 100%;
     border: 1px solid var(--border-color);
     box-sizing: border-box;
 }
 
+/* --- Typography --- */
 h1 {
-    /* Apply gradient to text */
+    /* Gradient Text */
     background: var(--brand-gradient);
     -webkit-background-clip: text;
     background-clip: text;
-    color: transparent;
-    /* Apply gradient to border using border-image */
-    border-bottom-width: 2px;
-    border-bottom-style: solid;
+    color: transparent; /* Make text transparent for gradient */
+    /* Gradient Border */
+    border-bottom: 3px solid;
     border-image-slice: 1;
     border-image-source: var(--brand-gradient);
-    /* Fallback border color */
-    /* border-bottom-color: var(--primary-color-fallback); */
-
     padding-bottom: 15px;
-    margin-top: 0;
-    margin-bottom: 10px;
+    margin: 0 0 10px 0;
     text-align: center;
-    font-weight: 600;
-    display: inline-block; /* Needed for text gradient */
-    width: 100%; /* Make h1 take full width for border */
-}
-
-/* Style H1 text selection when gradient is applied */
-h1::selection {
-    background-color: var(--selection-bg);
-    color: var(--text-color) !important;
-    -webkit-text-fill-color: var(--text-color);
+    font-weight: 700; /* Bolder */
+    font-size: 2.2em;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .subtitle {
     text-align: center;
     margin-top: 0px;
-    margin-bottom: 35px;
-    color: #bbb;
-    font-size: 1em;
-    font-style: italic;
+    margin-bottom: 40px;
+    color: var(--text-muted-color);
+    font-size: 1.1em;
+    font-weight: 400;
 }
 
+/* --- Stats Grid --- */
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 25px;
-    margin-bottom: 40px;
-    text-align: center;
+    margin-bottom: 45px;
 }
 
 .stat-item {
-    background-color: #3a3a40;
-    padding: 20px 15px;
+    background-color: var(--bg-color); /* Slightly darker than container */
+    padding: 25px 20px;
     border-radius: 8px;
     border: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    min-height: 130px;
+    min-height: 150px;
+    text-align: center;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-base);
+}
+
+.stat-item:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.35);
+}
+
+/* Error State for Stat Items */
+.stat-item.error {
+    border-color: var(--error-color);
+    background-color: rgba(244, 67, 54, 0.1); /* Subtle red background */
 }
 
 .stat-item h2 {
-    margin-top: 0;
-    margin-bottom: 15px;
-    font-size: 1.1em;
-    color: #ccc;
+    margin: 0 0 15px 0;
+    font-size: 1.15em;
+    color: var(--text-muted-color);
     font-weight: 500;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 10px;
 }
 
 .stat-item h2 i {
-    /* Apply gradient to icon */
+    /* Gradient Icon */
     background: var(--brand-gradient);
     -webkit-background-clip: text;
     background-clip: text;
-    color: transparent;
-    /* Fallback color */
-    /* color: var(--primary-color-fallback); */
-
-    font-size: 1.1em;
-    width: 1.2em;
+    color: transparent; /* Make icon transparent for gradient */
+    font-size: 1.3em; /* Slightly larger icon */
+    width: 1.4em; /* Ensure consistent width */
     text-align: center;
     flex-shrink: 0;
-}
-/* Style icon selection when gradient is applied */
-.stat-item h2 i::selection {
-     background-color: var(--selection-bg);
-     color: var(--text-color) !important;
-    -webkit-text-fill-color: var(--text-color);
+    line-height: 1; /* Prevent extra spacing */
 }
 
 .stat-item .value {
-    font-size: 2.4em;
-    font-weight: bold;
+    font-size: 2.6em; /* Larger value text */
+    font-weight: 700; /* Bold value */
     line-height: 1.1;
-    margin-top: auto;
+    margin-top: auto; /* Pushes value down */
     padding-top: 10px;
-
-    /* Apply gradient to value text */
-    background: var(--brand-gradient);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    /* Fallback color */
-    /* color: var(--secondary-color-fallback); */
+    color: var(--text-color); /* Solid color for better readability */
 }
-
-/* Style value text selection when gradient is applied */
-.stat-item .value::selection {
-    background-color: var(--selection-bg);
-    color: var(--text-color) !important;
-    -webkit-text-fill-color: var(--text-color);
-}
-
 
 .value span {
-    transition: opacity 0.3s ease-in-out, transform 0.2s ease-in-out; /* Changed from color to opacity */
-    display: inline-block;
-    background: none; /* Ensure span itself has no background */
-    -webkit-background-clip: text; /* Re-apply clipping */
-    background-clip: text;
-    color: transparent; /* Make sure span text is also transparent */
-    /* This might need more specific targeting if hljs adds spans inside */
+    transition: opacity var(--transition-fast), transform var(--transition-fast);
+    display: inline-block; /* Needed for transform */
 }
 
+/* Update Animation - Subtle Scale/Opacity */
 .value span.updated {
-    /* Use opacity or transform for update effect, as color is gradient now */
-    opacity: 0.7; /* Example effect */
-    transform: scale(1.15);
+    opacity: 0.7;
+    transform: scale(1.08);
+}
+
+/* --- Skeleton Loader Styles --- */
+@keyframes skeleton-loading {
+    0% { background-position: -200px 0; }
+    100% { background-position: calc(200px + 100%) 0; }
 }
 
 .loading {
-    /* Loading style - gradient won't apply here */
-    color: #888 !important;
-    font-style: italic;
-    font-size: 0.8em;
-    transform: none !important;
-    background: none; /* Ensure no gradient */
-    -webkit-background-clip: initial; /* Reset clipping */
+    display: inline-block;
+    background-color: var(--border-color); /* Base color */
+    color: transparent !important; /* Hide text */
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+    min-height: 1.1em; /* Ensure height */
+    vertical-align: middle; /* Align with text */
+
+    /* Shimmer Effect */
+    background-image: linear-gradient(90deg, var(--border-color), #4a4a50, var(--border-color));
+    background-size: 200px 100%;
+    background-repeat: no-repeat;
+    animation: skeleton-loading 1.5s infinite linear;
+
+    /* Remove gradient text styles */
+    background: var(--border-color); /* Solid background */
+    -webkit-background-clip: initial;
     background-clip: initial;
+    font-style: normal; /* Reset italic */
 }
 
+/* Specific Skeleton Sizes */
+.value span.loading {
+    width: 90px; /* Adjust width as needed */
+    height: 1.1em; /* Match approx line height */
+    font-size: 1em; /* Reset font size for loading block */
+}
+
+code.loading {
+    display: block; /* Code block is block level */
+    min-height: 100px; /* Placeholder height */
+    width: 100%; /* Full width */
+    box-sizing: border-box;
+    font-size: 0.9em; /* Reset font size */
+    padding: 10px; /* Minimal padding */
+    line-height: 1.4; /* Consistent line height */
+    background-color: var(--border-color); /* Use base color */
+    background-image: linear-gradient(90deg, var(--border-color), #4a4a50, var(--border-color));
+    background-size: 200px 100%;
+    background-repeat: no-repeat;
+    animation: skeleton-loading 1.5s infinite linear;
+}
+
+/* --- JSON View --- */
 .json-view {
-    margin-top: 30px;
+    margin-top: 40px;
 }
 
 .json-header {
@@ -193,95 +235,145 @@ h1::selection {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 15px;
-    padding-bottom: 8px;
+    padding-bottom: 10px;
     border-bottom: 1px solid var(--border-color);
+    flex-wrap: wrap; /* Allow controls to wrap on small screens */
+    gap: 10px; /* Space between title and controls */
 }
 
 .json-header h2 {
-    color: #ccc;
+    color: var(--text-muted-color);
     font-weight: 500;
+    font-size: 1.2em;
     margin: 0;
-    border-bottom: none;
-    padding-bottom: 0;
     display: flex;
     align-items: center;
     gap: 8px;
+    border-bottom: none; /* Remove inherited border */
+    padding-bottom: 0; /* Remove inherited padding */
 }
 .json-header h2 i {
-     color: var(--text-color);
+     color: var(--text-muted-color); /* Match text color */
      font-size: 1em;
 }
 
-.toggle-btn {
-    /* Apply gradient to button background */
-    background: var(--brand-gradient);
-    color: var(--text-color); /* Ensure text is readable on gradient */
-    border: none;
+.json-controls {
+    display: flex;
+    gap: 10px; /* Space between buttons */
+}
+
+.control-btn {
+    background-color: var(--highlight-bg);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
     padding: 6px 12px;
     border-radius: 5px;
     cursor: pointer;
-    font-size: 0.85em;
+    font-size: 0.9em;
     font-weight: 500;
-    transition: filter 0.2s ease; /* Use filter for hover effect */
+    transition: background-color var(--transition-fast), border-color var(--transition-fast);
+    display: flex;
+    align-items: center;
+    gap: 5px;
 }
 
-.toggle-btn:hover {
-    /* background: var(--brand-gradient); */ /* Keep same gradient */
-    filter: brightness(1.2); /* Make it slightly brighter on hover */
+.control-btn:hover {
+    background-color: var(--border-color); /* Darken slightly */
+    border-color: #555;
+}
+.control-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background-color: var(--highlight-bg); /* Keep base color when disabled */
 }
 
 #json-content.hidden {
     display: none;
 }
 
+/* Let highlight.js theme control pre/code background and text color */
 pre {
+    /* Remove background/color here if they conflict with theme */
     padding: 20px;
     border-radius: 8px;
-    overflow-x: auto;
     border: 1px solid var(--border-color);
-    max-height: 400px;
-    overflow-y: auto;
+    max-height: 450px; /* Slightly taller */
+    overflow: auto; /* Both directions */
     margin: 0;
-    /* Background is now fully controlled by highlight.js theme */
+    /* background-color: #282c34; */ /* This should come from atom-one-dark.css */
 }
 
 code {
     font-family: var(--code-font-family);
     font-size: 0.9em;
-    white-space: pre;
-    /* Text color is controlled by highlight.js theme */
+    white-space: pre; /* Preserve whitespace and prevent auto-wrap */
+    /* color: #abb2bf; */ /* This should come from atom-one-dark.css */
+    display: block; /* Ensure code fills pre */
+    line-height: 1.5; /* Improve code readability */
 }
 
-/* REMOVED gradient styles for #reservations-json */
-
-code.loading {
-     color: #888 !important;
-     font-style: italic;
-}
-
+/* --- Last Updated & Live Indicator --- */
 .last-updated {
     text-align: center;
-    font-size: 0.85em;
-    color: #888;
-    margin-top: 30px;
+    font-size: 0.9em;
+    color: var(--text-muted-color);
+    margin-top: 35px;
     margin-bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px; /* Space between indicator and text */
 }
-.last-updated span {
+.last-updated span#last-updated-time {
     font-weight: 500;
-    color: #aaa;
+    color: #ccc; /* Lighter than muted text */
 }
 
+.live-indicator-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 500;
+    color: var(--accent-color); /* Green color for 'Live' */
+}
 
+.live-indicator {
+    width: 10px;
+    height: 10px;
+    background-color: var(--accent-color);
+    border-radius: 50%;
+    display: inline-block;
+    position: relative;
+}
+
+/* Pulsing Animation */
+@keyframes pulse {
+    0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(76, 175, 80, 0); }
+    100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+}
+
+.live-indicator.pulsing {
+    animation: pulse 1.5s infinite cubic-bezier(0.66, 0, 0, 1);
+}
+
+/* --- Responsive Design --- */
 @media (max-width: 768px) {
      .container {
-        padding: 20px 25px;
+        padding: 25px 30px;
+    }
+    h1 {
+        font-size: 2em;
     }
     .stats-grid {
-        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
         gap: 20px;
     }
      .stat-item .value {
-        font-size: 2em;
+        font-size: 2.2em;
+    }
+    pre {
+        max-height: 350px;
     }
 }
 
@@ -293,36 +385,38 @@ code.loading {
         padding: 20px 15px;
     }
     h1 {
-        font-size: 1.6em;
+        font-size: 1.8em;
     }
     .subtitle {
-        font-size: 0.9em;
-        margin-bottom: 25px;
+        font-size: 1em;
+        margin-bottom: 30px;
     }
     .stats-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr; /* Stack vertically */
         gap: 15px;
     }
     .stat-item {
         min-height: auto;
-        padding: 15px;
+        padding: 20px 15px;
     }
     .stat-item .value {
-        font-size: 1.9em;
-        padding-top: 5px;
+        font-size: 2em;
     }
     .json-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
+        /* Keep flex-row but allow wrap */
+        align-items: flex-start; /* Align title/controls top */
     }
-     .toggle-btn {
-         align-self: flex-end;
-     }
-    pre {
+    .json-controls {
+        margin-left: auto; /* Push controls to right if space allows */
+    }
+     pre {
         padding: 15px;
     }
     code {
         font-size: 0.85em;
+    }
+    .last-updated {
+        flex-direction: column; /* Stack indicator and text */
+        gap: 5px;
     }
 }
