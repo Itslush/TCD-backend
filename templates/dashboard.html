@@ -65,12 +65,8 @@
                     fetch('/reservations')
                 ]);
 
-                if (!statsResponse.ok) {
-                    throw new Error(`Stats fetch failed: ${statsResponse.status} ${statsResponse.statusText}`);
-                }
-                 if (!reservationsResponse.ok) {
-                    throw new Error(`Reservations fetch failed: ${reservationsResponse.status} ${reservationsResponse.statusText}`);
-                }
+                if (!statsResponse.ok) throw new Error(`Stats fetch failed: ${statsResponse.status}`);
+                if (!reservationsResponse.ok) throw new Error(`Reservations fetch failed: ${reservationsResponse.status}`);
 
                 const statsData = await statsResponse.json();
                 const reservationsData = await reservationsResponse.json();
@@ -87,84 +83,54 @@
             const currentValue = element.textContent;
             const isLoading = element.classList.contains('loading');
             const newValueStr = String(newValue);
-
             element.textContent = newValueStr;
-
-            if (isLoading) {
-                element.classList.remove('loading');
-            }
-
+            if (isLoading) element.classList.remove('loading');
             if (!isLoading && currentValue !== newValueStr) {
                 element.classList.add('updated');
-                setTimeout(() => {
-                    element.classList.remove('updated');
-                }, 500);
+                setTimeout(() => element.classList.remove('updated'), 500);
             }
         }
 
         function updateUI(stats, reservations) {
-            if (stats && typeof stats.botCount !== 'undefined') {
-                applyUpdateEffect(botCountEl, stats.botCount);
-            } else {
-                botCountEl.textContent = '?';
-                if (!botCountEl.classList.contains('loading')) botCountEl.classList.add('loading');
-            }
+            if (stats && typeof stats.botCount !== 'undefined') applyUpdateEffect(botCountEl, stats.botCount);
+            else { botCountEl.textContent = '?'; if (!botCountEl.classList.contains('loading')) botCountEl.classList.add('loading'); }
+            if (stats && typeof stats.serverCount !== 'undefined') applyUpdateEffect(serverCountEl, stats.serverCount);
+            else { serverCountEl.textContent = '?'; if (!serverCountEl.classList.contains('loading')) serverCountEl.classList.add('loading'); }
+            if (stats && typeof stats.totalFlings !== 'undefined') applyUpdateEffect(totalFlingsEl, stats.totalFlings);
+            else { totalFlingsEl.textContent = '?'; if (!totalFlingsEl.classList.contains('loading')) totalFlingsEl.classList.add('loading'); }
 
-            if (stats && typeof stats.serverCount !== 'undefined') {
-                applyUpdateEffect(serverCountEl, stats.serverCount);
-            } else {
-                serverCountEl.textContent = '?';
-                if (!serverCountEl.classList.contains('loading')) serverCountEl.classList.add('loading');
-            }
-
-             if (stats && typeof stats.totalFlings !== 'undefined') {
-                applyUpdateEffect(totalFlingsEl, stats.totalFlings);
-            } else {
-                totalFlingsEl.textContent = '?';
-                if (!totalFlingsEl.classList.contains('loading')) totalFlingsEl.classList.add('loading');
-            }
-
-            if (lastUpdatedEl) {
-                lastUpdatedEl.textContent = new Date().toLocaleTimeString();
-            }
+            if (lastUpdatedEl) lastUpdatedEl.textContent = new Date().toLocaleTimeString();
 
             try {
                 const jsonString = (reservations && typeof reservations === 'object')
-                    ? JSON.stringify(reservations, null, 2)
-                    : "Invalid or empty data received.";
+                    ? JSON.stringify(reservations, null, 2) : "Invalid data";
 
                 reservationsJsonEl.textContent = jsonString;
                 reservationsJsonEl.classList.remove('loading');
 
-                if (typeof hljs !== 'undefined') {
-                    hljs.highlightElement(reservationsJsonEl);
-                    console.log("Highlighting re-applied to JSON.");
+                if (typeof hljs !== 'undefined' && hljs.highlightElement) {
+                     hljs.highlightElement(reservationsJsonEl);
+                     console.log("Highlighting re-applied to JSON.");
                 } else {
-                    console.warn("highlight.js (hljs) not found, cannot re-apply highlighting.");
+                     console.warn("highlight.js (hljs) or highlightElement not found/ready, cannot highlight JSON.");
                 }
 
             } catch (e) {
-                console.error("Error processing reservations JSON:", e);
-                reservationsJsonEl.textContent = "Error displaying JSON data.";
-                if (!reservationsJsonEl.classList.contains('loading')) {
-                    reservationsJsonEl.classList.add('loading');
-                }
+                console.error("Error processing/highlighting reservations JSON:", e);
+                reservationsJsonEl.textContent = "Error displaying JSON.";
+                if (!reservationsJsonEl.classList.contains('loading')) reservationsJsonEl.classList.add('loading');
             }
         }
 
         function setErrorState(errorMessage = "Error") {
              const errorText = `Error (${new Date().toLocaleTimeString()})`;
-             botCountEl.textContent = errorText;
-             botCountEl.classList.add('loading');
-             serverCountEl.textContent = errorText;
-             serverCountEl.classList.add('loading');
-             totalFlingsEl.textContent = errorText;
-             totalFlingsEl.classList.add('loading');
+             [botCountEl, serverCountEl, totalFlingsEl].forEach(el => {
+                 el.textContent = errorText;
+                 el.classList.add('loading');
+             });
              reservationsJsonEl.textContent = `Failed to load data: ${errorMessage}`;
              reservationsJsonEl.classList.add('loading');
-             if (lastUpdatedEl) {
-                 lastUpdatedEl.textContent = 'Update Failed';
-             }
+             if (lastUpdatedEl) lastUpdatedEl.textContent = 'Update Failed';
         }
 
         toggleJsonBtn.addEventListener('click', () => {
@@ -173,9 +139,11 @@
             toggleJsonBtn.setAttribute('aria-expanded', !isHidden);
         });
 
-        updateData();
-        setInterval(updateData, UPDATE_INTERVAL);
-
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log("DOM fully loaded. Initializing update.");
+            updateData();
+            setInterval(updateData, UPDATE_INTERVAL);
+        });
     </script>
 </body>
 </html>
