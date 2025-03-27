@@ -3,108 +3,172 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Operation: TCD</title>
+    <title>Operation: TCD Dashboard</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
 
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <div class="container">
-        <h1>Cube07 Botnet Status</h1>
+        <h1>Operation TCD status:</h1>
+        <p class="subtitle">Real-time statistics from all bots</p>
 
         <div class="stats-grid">
             <div class="stat-item">
-                <h2>Bots Online</h2>
+                <h2><i class="fas fa-robot"></i> Bots Online</h2>
                 <p class="value"><span id="bot-count" class="loading">--</span></p>
             </div>
             <div class="stat-item">
-                <h2>Servers Occupied</h2>
+                <h2><i class="fas fa-server"></i> Servers Occupied</h2>
                 <p class="value"><span id="server-count" class="loading">--</span></p>
             </div>
             <div class="stat-item">
-                <h2>Total Flings Reported</h2>
+                <h2><i class="fas fa-bullseye"></i> Total Flings Reported</h2>
                 <p class="value"><span id="total-flings" class="loading">--</span></p>
             </div>
         </div>
 
         <div class="json-view">
-            <h2>Live Server Reservations (Raw JSON)</h2>
-            <pre><code id="reservations-json" class="loading">Loading...</code></pre>
+            <div class="json-header">
+                <h2><i class="fas fa-code"></i> Live Server Reservations</h2>
+                <button id="toggle-json" class="toggle-btn" aria-expanded="true" aria-controls="json-content">Hide</button>
+            </div>
+            <div id="json-content">
+                <pre><code id="reservations-json" class="language-json loading">Loading...</code></pre>
+            </div>
         </div>
+
+        <p class="last-updated">Last updated: <span id="last-updated-time">Never</span></p>
     </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
 
     <script>
         const botCountEl = document.getElementById('bot-count');
         const serverCountEl = document.getElementById('server-count');
         const totalFlingsEl = document.getElementById('total-flings');
         const reservationsJsonEl = document.getElementById('reservations-json');
+        const lastUpdatedEl = document.getElementById('last-updated-time');
+        const toggleJsonBtn = document.getElementById('toggle-json');
+        const jsonContent = document.getElementById('json-content');
 
         const UPDATE_INTERVAL = 7000;
 
         async function updateData() {
             console.log("Fetching updated data...");
             try {
-                const statsResponse = await fetch('/');
-                if (!statsResponse.ok) {
-                    throw new Error(`Stats fetch failed: ${statsResponse.status}`);
-                }
-                const statsData = await statsResponse.json();
+                const [statsResponse, reservationsResponse] = await Promise.all([
+                    fetch('/'),
+                    fetch('/reservations')
+                ]);
 
-                const reservationsResponse = await fetch('/reservations');
-                 if (!reservationsResponse.ok) {
-                    throw new Error(`Reservations fetch failed: ${reservationsResponse.status}`);
+                if (!statsResponse.ok) {
+                    throw new Error(`Stats fetch failed: ${statsResponse.status} ${statsResponse.statusText}`);
                 }
+                 if (!reservationsResponse.ok) {
+                    throw new Error(`Reservations fetch failed: ${reservationsResponse.status} ${reservationsResponse.statusText}`);
+                }
+
+                const statsData = await statsResponse.json();
                 const reservationsData = await reservationsResponse.json();
 
                 updateUI(statsData, reservationsData);
 
             } catch (error) {
                 console.error("Error fetching data:", error);
-                botCountEl.textContent = 'Error';
-                botCountEl.classList.add('loading');
-                serverCountEl.textContent = 'Error';
-                serverCountEl.classList.add('loading');
-                totalFlingsEl.textContent = 'Error';
-                totalFlingsEl.classList.add('loading');
-                reservationsJsonEl.textContent = `Error loading data:\n${error}`;
-                reservationsJsonEl.classList.add('loading');
+                setErrorState(error.message);
             }
         }
+
+        function applyUpdateEffect(element, newValue) {
+            const currentValue = element.textContent;
+            const isLoading = element.classList.contains('loading');
+            const newValueStr = String(newValue);
+
+            element.textContent = newValueStr;
+
+            if (isLoading) {
+                element.classList.remove('loading');
+            }
+
+            if (!isLoading && currentValue !== newValueStr) {
+                element.classList.add('updated');
+                setTimeout(() => {
+                    element.classList.remove('updated');
+                }, 500);
+            }
+        }
+
 
         function updateUI(stats, reservations) {
             if (stats && typeof stats.botCount !== 'undefined') {
-                botCountEl.textContent = stats.botCount;
-                botCountEl.classList.remove('loading');
+                applyUpdateEffect(botCountEl, stats.botCount);
             } else {
                 botCountEl.textContent = '?';
+                if (!botCountEl.classList.contains('loading')) botCountEl.classList.add('loading');
             }
 
             if (stats && typeof stats.serverCount !== 'undefined') {
-                serverCountEl.textContent = stats.serverCount;
-                serverCountEl.classList.remove('loading');
+                applyUpdateEffect(serverCountEl, stats.serverCount);
             } else {
-                 serverCountEl.textContent = '?';
+                serverCountEl.textContent = '?';
+                if (!serverCountEl.classList.contains('loading')) serverCountEl.classList.add('loading');
             }
 
              if (stats && typeof stats.totalFlings !== 'undefined') {
-                totalFlingsEl.textContent = stats.totalFlings;
-                totalFlingsEl.classList.remove('loading');
+                applyUpdateEffect(totalFlingsEl, stats.totalFlings);
             } else {
-                 totalFlingsEl.textContent = '?';
+                totalFlingsEl.textContent = '?';
+                if (!totalFlingsEl.classList.contains('loading')) totalFlingsEl.classList.add('loading');
+            }
+
+            if (lastUpdatedEl) {
+                lastUpdatedEl.textContent = new Date().toLocaleTimeString();
             }
 
             try {
-                reservationsJsonEl.textContent = JSON.stringify(reservations, null, 2);
+                const jsonString = (reservations && typeof reservations === 'object')
+                    ? JSON.stringify(reservations, null, 2)
+                    : "Invalid or empty data received.";
+
+                reservationsJsonEl.textContent = jsonString;
                 reservationsJsonEl.classList.remove('loading');
+                hljs.highlightElement(reservationsJsonEl);
             } catch (e) {
-                console.error("Error stringifying reservations JSON:", e);
+                console.error("Error processing reservations JSON:", e);
                 reservationsJsonEl.textContent = "Error displaying JSON data.";
-                reservationsJsonEl.classList.add('loading');
+                if (!reservationsJsonEl.classList.contains('loading')) reservationsJsonEl.classList.add('loading');
             }
         }
 
-        updateData();
+        function setErrorState(errorMessage = "Error") {
+             const errorText = `Error (${new Date().toLocaleTimeString()})`;
+             botCountEl.textContent = errorText;
+             botCountEl.classList.add('loading');
+             serverCountEl.textContent = errorText;
+             serverCountEl.classList.add('loading');
+             totalFlingsEl.textContent = errorText;
+             totalFlingsEl.classList.add('loading');
+             reservationsJsonEl.textContent = `Failed to load data: ${errorMessage}`;
+             reservationsJsonEl.classList.add('loading');
+             if (lastUpdatedEl) {
+                 lastUpdatedEl.textContent = 'Update Failed';
+             }
+        }
 
+        toggleJsonBtn.addEventListener('click', () => {
+            const isHidden = jsonContent.classList.toggle('hidden');
+            toggleJsonBtn.textContent = isHidden ? 'Show' : 'Hide';
+            toggleJsonBtn.setAttribute('aria-expanded', !isHidden);
+        });
+
+        updateData();
         setInterval(updateData, UPDATE_INTERVAL);
+
     </script>
 </body>
 </html>
