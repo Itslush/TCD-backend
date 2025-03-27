@@ -17,10 +17,13 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
 
     <!-- Your Stylesheet -->
-    <!-- Make sure this path is correct for your setup -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <!-- Or if static HTML: -->
-    <!-- <link rel="stylesheet" href="style.css"> -->
+    <!-- If using a framework like Flask/Django: -->
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"> -->
+
+    <!-- If just a static HTML file, ensure 'style.css' is in the correct path relative to the HTML file -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- REMOVED the <style> block from here -->
 
 </head>
 <body>
@@ -80,7 +83,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
 
-    <!-- Your Script -->
+    <!-- Your Script (JavaScript remains here) -->
     <script>
         // --- DOM Elements ---
         const botCountEl = document.getElementById('bot-count');
