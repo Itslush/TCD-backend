@@ -287,4 +287,4 @@ if __name__ == '__main__':
     # port=5000 is the default Flask port, change if needed
     # debug=False is important for production/stability; set to True only for development
     logging.info("Starting Flask application...")
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    app.run(host='0.0.0.0', port=5000, debug=True)
