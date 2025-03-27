@@ -17,7 +17,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
 
     <!-- Your Stylesheet -->
+    <!-- Make sure this path is correct for your setup -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <!-- Or if static HTML: -->
+    <!-- <link rel="stylesheet" href="style.css"> -->
 
 </head>
 <body>
@@ -53,15 +56,16 @@
                     <button id="copy-json" class="control-btn copy-btn" title="Copy JSON to clipboard">
                         <i class="far fa-copy"></i> Copy
                     </button>
-                    <button id="toggle-json" class="control-btn toggle-btn" aria-expanded="true" aria-controls="json-content">
+                    <button id="toggle-json" class="control-btn toggle-btn" aria-expanded="true" aria-controls="json-pre-container">
                         Hide
                     </button>
                 </div>
             </div>
-            <div id="json-content">
-                <!-- Pre-wrap ensures long lines wrap if needed, while preserving formatting -->
-                <pre><code id="reservations-json" class="language-json loading">Loading reservation data...</code></pre>
-            </div>
+            <!-- Keep PRE for scrolling and max-height -->
+            <pre id="json-pre-container">
+                <!-- This div will hold the individual entries or error/loading message -->
+                <div id="reservations-container" class="loading">Loading reservation data...</div>
+            </pre>
         </div>
 
         <p class="last-updated">
@@ -78,230 +82,322 @@
 
     <!-- Your Script -->
     <script>
+        // --- DOM Elements ---
         const botCountEl = document.getElementById('bot-count');
-    const serverCountEl = document.getElementById('server-count');
-    const totalFlingsEl = document.getElementById('total-flings');
-    const reservationsJsonEl = document.getElementById('reservations-json');
-    const lastUpdatedEl = document.getElementById('last-updated-time');
-    const toggleJsonBtn = document.getElementById('toggle-json');
-    const jsonContent = document.getElementById('json-content');
-    const copyJsonBtn = document.getElementById('copy-json');
-    const liveIndicator = document.querySelector('.live-indicator');
-    const statItems = {
-        bots: document.getElementById('stat-bots'),
-        servers: document.getElementById('stat-servers'),
-        flings: document.getElementById('stat-flings')
-    };
+        const serverCountEl = document.getElementById('server-count');
+        const totalFlingsEl = document.getElementById('total-flings');
+        const reservationsContainerEl = document.getElementById('reservations-container'); // Container for JSON entries
+        const lastUpdatedEl = document.getElementById('last-updated-time');
+        const toggleJsonBtn = document.getElementById('toggle-json');
+        const jsonPreContainer = document.getElementById('json-pre-container'); // The <pre> tag itself
+        const copyJsonBtn = document.getElementById('copy-json');
+        const liveIndicator = document.querySelector('.live-indicator');
+        const statItems = { // Store stat items for error styling
+            bots: document.getElementById('stat-bots'),
+            servers: document.getElementById('stat-servers'),
+            flings: document.getElementById('stat-flings')
+        };
 
-    // --- Constants ---
-    const UPDATE_INTERVAL = 7000;
+        // --- Constants ---
+        const UPDATE_INTERVAL = 7000; // 7 seconds
 
-    // --- State ---
-    let initialLoadComplete = false;
-    let previousJsonString = null; // Store previous JSON to check for changes
-    let updateScheduled = false; // Prevent scheduling multiple rAF updates
+        // --- State ---
+        let initialLoadComplete = false;
+        let previousReservationsData = null; // Store previous raw data object/array
+        let updateScheduled = false; // Prevent scheduling multiple rAF updates
 
-    // --- Functions ---
+        // --- Functions ---
 
-    async function updateData() {
-        // Don't explicitly set loading state here anymore, let UI update handle it
-        console.log("Fetching updated data...");
+        /**
+         * Fetches updated statistics and reservation data from the server.
+         */
+        async function updateData() {
+            console.log("Fetching updated data...");
 
-        try {
-            const [statsResponse, reservationsResponse] = await Promise.all([
-                fetch('/'),
-                fetch('/reservations')
-            ]);
-
-            if (!statsResponse.ok) throw new Error(`Stats fetch failed: ${statsResponse.status} ${statsResponse.statusText}`);
-            if (!reservationsResponse.ok) throw new Error(`Reservations fetch failed: ${reservationsResponse.status} ${reservationsResponse.statusText}`);
-
-            const statsData = await statsResponse.json();
-            const reservationsData = await reservationsResponse.json();
-
-            // Process the update
-            processUpdate(statsData, reservationsData);
-            setErrorState(null); // Clear previous errors on success
-            initialLoadComplete = true;
-
-        } catch (error) {
-            console.error("Error fetching data:", error);
-            setErrorState(error.message || "Unknown error");
-            initialLoadComplete = true; // Mark load complete even on error
-        }
-    }
-
-    /**
-     * Processes the fetched data and schedules UI updates.
-     */
-    function processUpdate(stats, reservations) {
-         // 1. Update simple stats immediately (low cost)
-         applyUpdateEffect(botCountEl, stats?.botCount);
-         applyUpdateEffect(serverCountEl, stats?.serverCount);
-         applyUpdateEffect(totalFlingsEl, stats?.totalFlings);
-
-         // 2. Update timestamp and indicator (low cost)
-         if (lastUpdatedEl) lastUpdatedEl.textContent = new Date().toLocaleTimeString();
-         if (liveIndicator && !liveIndicator.classList.contains('pulsing')) {
-             liveIndicator.classList.add('pulsing');
-         }
-
-         // 3. Handle potentially expensive JSON update
-         try {
-            const currentJsonString = (reservations && typeof reservations === 'object')
-                ? JSON.stringify(reservations, null, 2)
-                : (reservations ? String(reservations) : null); // Use null for invalid/non-object
-
-            // Only update DOM if JSON changed or if it's invalid/error state
-            if (currentJsonString !== previousJsonString || currentJsonString === null) {
-                 scheduleJsonUpdate(currentJsonString, reservations); // Pass original data too for type check
-                 previousJsonString = currentJsonString; // Update stored string
-            } else {
-                // If JSON is the same, still ensure loading state is removed if needed
-                if (reservationsJsonEl.classList.contains('loading')) {
-                     reservationsJsonEl.classList.remove('loading');
-                     console.log("JSON unchanged, ensuring loading class removed.");
-                }
-            }
-
-        } catch (e) {
-             console.error("Error stringifying reservations JSON:", e);
-             scheduleJsonUpdate(`Error processing JSON: ${e.message}`, null); // Schedule error display
-             previousJsonString = null; // Reset previous string on error
-        }
-    }
-
-     /**
-     * Schedules the JSON highlighting and DOM update using requestAnimationFrame.
-     * @param {string|null} jsonString - The stringified JSON or error message.
-     * @param {object|null} reservationsData - Original reservation data for type check.
-     */
-     function scheduleJsonUpdate(jsonString, reservationsData) {
-        if (updateScheduled) return; // Don't schedule if one is already pending
-        updateScheduled = true;
-
-        requestAnimationFrame(() => {
             try {
-                if (!jsonString || !reservationsData || typeof reservationsData !== 'object') {
-                    // Handle invalid data or errors passed from processUpdate
-                    reservationsJsonEl.textContent = jsonString || "Invalid or empty reservation data.";
-                    reservationsJsonEl.classList.add('loading'); // Use loading style for error/invalid
-                    console.warn("Displaying invalid/error state for reservations.");
-                } else if (typeof hljs !== 'undefined' && hljs.highlight) {
-                    // Highlight valid JSON
-                    const highlightedCode = hljs.highlight(jsonString, { language: 'json' }).value;
-                    reservationsJsonEl.innerHTML = highlightedCode;
-                    reservationsJsonEl.classList.remove('loading');
-                    console.log("JSON highlighting updated via rAF.");
-                } else {
-                    // Fallback if hljs is missing
-                    reservationsJsonEl.textContent = jsonString;
-                    reservationsJsonEl.classList.remove('loading');
-                    console.warn("highlight.js not ready. Displaying raw JSON via rAF.");
+                const [statsResponse, reservationsResponse] = await Promise.all([
+                    fetch('/'), // Assuming '/' provides { botCount, serverCount, totalFlings }
+                    fetch('/reservations') // Assuming '/reservations' provides the JSON data
+                ]);
+
+                // Check response statuses
+                if (!statsResponse.ok) throw new Error(`Stats fetch failed: ${statsResponse.status} ${statsResponse.statusText}`);
+                if (!reservationsResponse.ok) throw new Error(`Reservations fetch failed: ${reservationsResponse.status} ${reservationsResponse.statusText}`);
+
+                // Parse JSON data
+                const statsData = await statsResponse.json();
+                const reservationsData = await reservationsResponse.json();
+
+                // Process the update
+                processUpdate(statsData, reservationsData);
+                if(initialLoadComplete) setErrorState(null); // Clear previous errors on success *after* initial load
+                initialLoadComplete = true; // Mark initial load as complete
+
+            } catch (error) {
+                console.error("Error fetching data:", error);
+                setErrorState(error.message || "Unknown error"); // Display error state
+                initialLoadComplete = true; // Still mark load complete even on error
+            }
+        }
+
+        /**
+         * Processes the fetched data and schedules UI updates.
+         */
+        function processUpdate(stats, reservations) {
+            // 1. Update simple stats immediately (low cost)
+            applyUpdateEffect(botCountEl, stats?.botCount);
+            applyUpdateEffect(serverCountEl, stats?.serverCount);
+            applyUpdateEffect(totalFlingsEl, stats?.totalFlings);
+
+            // 2. Update timestamp and indicator (low cost)
+            if (lastUpdatedEl) lastUpdatedEl.textContent = new Date().toLocaleTimeString();
+            if (liveIndicator && !liveIndicator.classList.contains('pulsing')) {
+                liveIndicator.classList.add('pulsing');
+            }
+
+            // 3. Handle potentially expensive JSON update
+            // Basic string comparison of raw data
+            const currentDataString = JSON.stringify(reservations);
+            const previousDataString = JSON.stringify(previousReservationsData);
+
+            if (currentDataString !== previousDataString) {
+                scheduleJsonUpdate(reservations); // Pass the raw data
+                previousReservationsData = reservations; // Update stored data
+            } else {
+                // If data is the same, ensure loading state is removed if needed
+                if (reservationsContainerEl && reservationsContainerEl.classList.contains('loading')) {
+                    reservationsContainerEl.classList.remove('loading');
+                    reservationsContainerEl.textContent = ''; // Clear loading text
+                    console.log("JSON data unchanged, ensuring loading class removed.");
                 }
-            } catch (e) {
-                 // Catch errors during highlighting or innerHTML update
-                 console.error("Error during scheduled JSON update:", e);
-                 reservationsJsonEl.textContent = `Error updating JSON view: ${e.message}`;
-                 reservationsJsonEl.classList.add('loading');
-            } finally {
-                updateScheduled = false; // Allow next update to be scheduled
-            }
-        });
-     }
-
-
-    /**
-     * Applies an update effect to an element when its value changes. (Minor tweaks)
-     */
-    function applyUpdateEffect(element, newValue) {
-        if (!element) return;
-
-        const isLoading = element.classList.contains('loading');
-        const currentValue = isLoading ? null : element.textContent; // Don't compare against loading text
-        const newValueStr = String(newValue ?? '?');
-
-        // Always remove loading class when applying new value
-        if (isLoading) {
-            element.classList.remove('loading');
-        }
-
-        // Update text content only if different or was loading
-        if (currentValue !== newValueStr) {
-            element.textContent = newValueStr;
-
-            // Apply visual 'updated' cue only if value truly changed (not just from loading state)
-             if (currentValue !== null && newValueStr !== '?') {
-                 element.classList.add('updated');
-                 setTimeout(() => {
-                     if (element) element.classList.remove('updated');
-                 }, 300); // Animation duration
             }
         }
-    }
 
-    /**
-     * Sets or removes the initial loading state (skeletons). Called only once.
-     */
-     function setInitialLoadingState() {
-        const elements = [botCountEl, serverCountEl, totalFlingsEl, reservationsJsonEl.parentNode]; // Target parent <pre> for code block maybe? No, code itself.
-        elements.forEach(el => {
-            if (el) {
-                el.classList.add('loading');
-                 // Set initial text if needed (CSS might handle this better with ::before content)
-                 // if(el !== reservationsJsonEl) el.textContent = '...';
-                 // else el.textContent = 'Loading data...';
-            }
-        });
-        // Don't start pulsing until first successful update
-        if (liveIndicator) liveIndicator.classList.remove('pulsing');
-     }
+        /**
+         * Schedules the JSON rendering update using requestAnimationFrame.
+         * Renders individual entries if data is an array.
+         * @param {object|array|null} reservationsData - The raw reservation data.
+         */
+        function scheduleJsonUpdate(reservationsData) {
+            if (updateScheduled || !reservationsContainerEl) return; // Don't schedule if one is pending or element missing
+            updateScheduled = true;
 
-    /**
-     * Updates the UI to reflect an error state.
-     */
-    function setErrorState(errorMessage) {
-        const isError = errorMessage !== null;
+            requestAnimationFrame(() => {
+                try {
+                    let finalHtml = '';
+                    let isEmpty = true; // Flag to track if there's actual data to show
 
-        Object.values(statItems).forEach(item => item?.classList.toggle('error', isError));
+                    if (reservationsData === null || reservationsData === undefined) {
+                        finalHtml = 'No reservation data received.';
+                        reservationsContainerEl.classList.add('loading'); // Use loading style for empty/error
+                    } else if (Array.isArray(reservationsData)) {
+                        if (reservationsData.length === 0) {
+                            finalHtml = 'No active reservations.';
+                             reservationsContainerEl.classList.remove('loading'); // Not loading, just empty info
+                        } else {
+                            isEmpty = false; // Has data
+                            // Process each item in the array
+                            reservationsData.forEach(item => {
+                                const itemString = JSON.stringify(item, null, 2);
+                                let highlightedCode = itemString; // Fallback
+                                if (typeof hljs !== 'undefined' && hljs.highlight) {
+                                    try {
+                                        highlightedCode = hljs.highlight(itemString, { language: 'json' }).value;
+                                    } catch (highlightError) {
+                                        console.error("Highlighting error for item:", item, highlightError);
+                                    }
+                                }
+                                finalHtml += `<div class="json-entry"><code class="language-json">${highlightedCode}</code></div>`;
+                            });
+                            reservationsContainerEl.classList.remove('loading');
+                        }
+                    } else if (typeof reservationsData === 'object' && Object.keys(reservationsData).length > 0) {
+                         isEmpty = false; // Has data
+                        // Handle a single object response
+                        const itemString = JSON.stringify(reservationsData, null, 2);
+                        let highlightedCode = itemString;
+                        if (typeof hljs !== 'undefined' && hljs.highlight) {
+                            try {
+                                highlightedCode = hljs.highlight(itemString, { language: 'json' }).value;
+                            } catch (highlightError) {
+                                console.error("Highlighting error for object:", reservationsData, highlightError);
+                            }
+                        }
+                        finalHtml = `<div class="json-entry"><code class="language-json">${highlightedCode}</code></div>`;
+                        reservationsContainerEl.classList.remove('loading');
+                    } else if (typeof reservationsData === 'object' && Object.keys(reservationsData).length === 0) {
+                         finalHtml = 'No active reservations. (Empty object)'; // Handle empty object case
+                         reservationsContainerEl.classList.remove('loading');
+                    } else {
+                        // Handle non-object, non-array, non-null data (e.g., string error message from server?)
+                        finalHtml = `Received unexpected data format: ${String(reservationsData)}`;
+                        reservationsContainerEl.classList.add('loading'); // Use loading style
+                    }
 
-        if (isError) {
-            const errorText = `Error`;
-            [botCountEl, serverCountEl, totalFlingsEl].forEach(el => {
-                if (el) {
-                    applyUpdateEffect(el, errorText); // Use apply effect to handle loading class removal too
-                    // Ensure loading isn't re-added if applyUpdateEffect didn't change text
-                     if(!el.classList.contains('loading') && el.textContent === errorText) {
-                         // Maybe add a specific error text style instead of reusing loading
-                     }
+                    // Update the container's content
+                    reservationsContainerEl.innerHTML = finalHtml;
+
+                    // Special handling for empty state text alignment/styling if needed
+                    if (isEmpty && !reservationsContainerEl.classList.contains('loading')) {
+                         reservationsContainerEl.classList.add('empty'); // Add class for styling empty message
+                    } else {
+                         reservationsContainerEl.classList.remove('empty');
+                    }
+
+                    console.log("JSON view updated via rAF.");
+
+                } catch (e) {
+                    // Catch errors during processing or innerHTML update
+                    console.error("Error during scheduled JSON update:", e);
+                    if (reservationsContainerEl) {
+                         reservationsContainerEl.innerHTML = `Error updating JSON view: ${e.message}`;
+                         reservationsContainerEl.classList.add('loading');
+                    }
+                } finally {
+                    updateScheduled = false; // Allow next update
                 }
             });
-            // Schedule the error message update for JSON view
-            scheduleJsonUpdate(`Failed to load data: ${errorMessage}`, null);
-            previousJsonString = null; // Reset comparison string
-
-            if (lastUpdatedEl) lastUpdatedEl.textContent = 'Update Failed';
-            if (liveIndicator) liveIndicator.classList.remove('pulsing');
-        } else {
-             // Clear error state (will be handled by next successful processUpdate)
         }
-    }
-
-    // --- Event Listeners --- (Keep existing listeners for toggle/copy)
-    toggleJsonBtn.addEventListener('click', () => { /* ... */ });
-    copyJsonBtn.addEventListener('click', () => { /* ... */ });
 
 
-    // --- Initialization ---
-    document.addEventListener('DOMContentLoaded', () => {
-        console.log("DOM fully loaded. Initializing...");
-        // Set initial skeleton/loading state visually
-        setInitialLoadingState();
-        // Initial data fetch
-        updateData();
-        // Set interval for subsequent updates
-        setInterval(updateData, UPDATE_INTERVAL);
-    });
+        /**
+         * Applies an update effect to an element when its value changes.
+         */
+        function applyUpdateEffect(element, newValue) {
+            if (!element) return;
+
+            const isLoading = element.classList.contains('loading');
+            const currentValue = isLoading ? null : element.textContent;
+            const newValueStr = String(newValue ?? '?');
+
+            if (isLoading) {
+                element.classList.remove('loading');
+            }
+
+            if (currentValue !== newValueStr) {
+                element.textContent = newValueStr;
+                if (currentValue !== null && newValueStr !== '?') { // Only animate if truly changed value
+                    element.classList.add('updated');
+                    setTimeout(() => {
+                        if (element) element.classList.remove('updated');
+                    }, 300); // Animation duration
+                }
+            }
+        }
+
+        /**
+         * Sets the initial loading state (skeletons/text). Called only once on startup.
+         */
+        function setInitialLoadingState() {
+            const statElements = [botCountEl, serverCountEl, totalFlingsEl];
+            statElements.forEach(el => {
+                if (el) el.classList.add('loading');
+                // CSS ::before can handle the visual block better than text here
+                // if (el) el.textContent = '...';
+            });
+            if (reservationsContainerEl) {
+                reservationsContainerEl.classList.add('loading');
+                reservationsContainerEl.textContent = 'Loading reservation data...';
+            }
+            if (liveIndicator) liveIndicator.classList.remove('pulsing');
+        }
+
+        /**
+         * Updates the UI to reflect an error state.
+         * @param {string|null} errorMessage - The error message, or null to clear errors.
+         */
+        function setErrorState(errorMessage) {
+            const isError = errorMessage !== null;
+
+            // Update Stat Items visuals
+            Object.values(statItems).forEach(item => {
+                 if (item) item.classList.toggle('error', isError)
+            });
+
+            if (isError) {
+                const errorText = `Error`;
+                [botCountEl, serverCountEl, totalFlingsEl].forEach(el => {
+                    if (el) applyUpdateEffect(el, errorText);
+                });
+
+                // Schedule the error message update for JSON view
+                scheduleJsonUpdate(`Failed to load data: ${errorMessage}`); // Let schedule function handle display
+                previousReservationsData = null; // Reset comparison data
+
+                if (lastUpdatedEl) lastUpdatedEl.textContent = 'Update Failed';
+                if (liveIndicator) liveIndicator.classList.remove('pulsing'); // Stop pulsing on error
+            } else {
+                // Clear error state from stat items if previously set
+                Object.values(statItems).forEach(item => {
+                    if(item) item.classList.remove('error')
+                });
+                // Successful update will handle UI state
+            }
+        }
+
+        // --- Event Listeners ---
+
+        // Toggle JSON Visibility
+        toggleJsonBtn.addEventListener('click', () => {
+            if (jsonPreContainer) {
+                 // Toggle a class on the container instead of direct style manipulation
+                const isHidden = jsonPreContainer.classList.toggle('hidden');
+                toggleJsonBtn.textContent = isHidden ? 'Show' : 'Hide';
+                toggleJsonBtn.setAttribute('aria-expanded', String(!isHidden));
+            }
+        });
+
+        // Copy JSON Content
+        copyJsonBtn.addEventListener('click', () => {
+            if (previousReservationsData === null || previousReservationsData === undefined) {
+                console.warn("No valid data to copy.");
+                copyJsonBtn.innerHTML = '<i class="fas fa-times"></i> No Data';
+                copyJsonBtn.disabled = true; // Prevent multiple clicks
+                setTimeout(() => {
+                    copyJsonBtn.innerHTML = '<i class="far fa-copy"></i> Copy';
+                    copyJsonBtn.disabled = false;
+                 }, 1500);
+                return;
+            }
+            try {
+                const jsonTextToCopy = JSON.stringify(previousReservationsData, null, 2);
+                navigator.clipboard.writeText(jsonTextToCopy).then(() => {
+                    copyJsonBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                    copyJsonBtn.disabled = true;
+                    setTimeout(() => {
+                        copyJsonBtn.innerHTML = '<i class="far fa-copy"></i> Copy';
+                        copyJsonBtn.disabled = false;
+                    }, 1500);
+                }).catch(err => {
+                    console.error('Failed to copy JSON: ', err);
+                    copyJsonBtn.innerHTML = '<i class="fas fa-times"></i> Failed';
+                    copyJsonBtn.disabled = true;
+                    setTimeout(() => {
+                        copyJsonBtn.innerHTML = '<i class="far fa-copy"></i> Copy';
+                        copyJsonBtn.disabled = false;
+                    }, 1500);
+                });
+            } catch (e) {
+                console.error('Error stringifying data for copy:', e);
+                copyJsonBtn.innerHTML = '<i class="fas fa-times"></i> Error';
+                 copyJsonBtn.disabled = true;
+                 setTimeout(() => {
+                     copyJsonBtn.innerHTML = '<i class="far fa-copy"></i> Copy';
+                     copyJsonBtn.disabled = false;
+                  }, 1500);
+            }
+        });
+
+        // --- Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log("DOM fully loaded. Initializing data fetch.");
+            // Set initial visual loading state
+            setInitialLoadingState();
+            // Initial data fetch
+            updateData();
+            // Set interval for subsequent updates
+            setInterval(updateData, UPDATE_INTERVAL);
+        });
     </script>
 
 </body>
