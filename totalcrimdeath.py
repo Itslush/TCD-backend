@@ -1,7 +1,9 @@
 from flask import Flask, request, jsonify, render_template, url_for
+from flask import Flask, request, jsonify, render_template, url_for
 import time
 import threading
 import logging
+import json
 import json
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
@@ -23,6 +25,7 @@ total_flings_reported = 0
 data_lock = threading.Lock()
 
 def is_reservation_stale(reservation):
+    """Checks if a reservation is expired based on its status and timestamp."""
     now = time.time()
     timestamp = reservation.get('timestamp', 0)
     status = reservation.get('status', 'reserved')
@@ -33,6 +36,7 @@ def is_reservation_stale(reservation):
     return False, ""
 
 def cleanup_stale_reservations():
+    """Background thread function to periodically remove stale reservations."""
     while True:
         time.sleep(CLEANUP_INTERVAL)
         removed_count = 0
@@ -57,7 +61,11 @@ def cleanup_stale_reservations():
 
 @app.route('/reservations', methods=['GET'])
 def get_reservations():
+    """Returns the current valid (non-stale) reservations as a JSON list."""
+    valid_reservations_list = []
     with data_lock:
+        reservations = shared_data.get("serverReservations", {})
+        for server_id, res in reservations.items():
         reservations = shared_data.get("serverReservations", {})
         for server_id, res in reservations.items():
              is_stale, _ = is_reservation_stale(res)
@@ -68,6 +76,7 @@ def get_reservations():
 
 @app.route('/reservations/reserve', methods=['POST'])
 def reserve_server():
+    """Attempts to reserve a server for a bot. Releases bot's old reservation if any."""
     data = request.get_json()
     if not data or 'serverId' not in data or 'botName' not in data: return jsonify({"error": "Missing serverId or botName"}), 400
     server_id = data['serverId']; bot_name = data['botName']; region = data.get('region', 'Unknown'); initial_player_count = data.get('initialPlayerCount', -1)
@@ -76,6 +85,7 @@ def reserve_server():
         existing_reservation_to_release = None
         for s_id, res in reservations.items():
             if res.get("botName") == bot_name and s_id != server_id:
+                logging.warning(f"Reserve: Bot {bot_name} reserving {server_id} but already has {s_id}. Releasing old.")
                 logging.warning(f"Reserve: Bot {bot_name} reserving {server_id} but already has {s_id}. Releasing old.")
                 existing_reservation_to_release = s_id
                 break
@@ -89,10 +99,11 @@ def reserve_server():
         new_reservation = {"serverId": server_id, "botName": bot_name, "timestamp": time.time(), "status": "reserved", "region": region, "initialPlayerCount": initial_player_count, "currentPlayerCount": None}
         reservations[server_id] = new_reservation
         logging.info(f"Reserve Success: {bot_name} reserved {server_id}")
-        return jsonify(new_reservation), 201
+        return jsonify(new_reservation), 201 # Created
 
 @app.route('/reservations/update', methods=['PUT', 'PATCH'])
 def update_reservation():
+    """Updates the status/heartbeat/playercount of a reservation. Can create if missing."""
     data = request.get_json()
     if not data or 'serverId' not in data or 'botName' not in data: return jsonify({"error": "Missing serverId or botName"}), 400
     server_id = data['serverId']; bot_name = data['botName']; new_status = data.get('status'); current_player_count = data.get('currentPlayerCount')
@@ -115,6 +126,7 @@ def update_reservation():
 
 @app.route('/reservations/release', methods=['DELETE'])
 def release_reservation():
+    """Releases a reservation if held by the requesting bot."""
     data = request.get_json()
     if not data or 'serverId' not in data or 'botName' not in data: return jsonify({"error": "Missing serverId or botName"}), 400
     server_id = data['serverId']; bot_name = data['botName']
@@ -128,6 +140,7 @@ def release_reservation():
 
 @app.route('/stats/increment_fling', methods=['POST'])
 def increment_fling_count():
+    """Increments the total reported fling count. Called by Lua on successful fling."""
     global total_flings_reported
     with data_lock: total_flings_reported += 1; current_count = total_flings_reported
     logging.info(f"Fling reported via API. Total now: {current_count}")
@@ -150,6 +163,13 @@ def get_stats_data():
                 server_count += 1
         bot_count = len(bot_names)
         flings = total_flings_reported
+        for server_id, res in reservations.items():
+            is_stale, _ = is_reservation_stale(res)
+            if not is_stale:
+                bot_names.add(res.get("botName", "Unknown"))
+                server_count += 1
+        bot_count = len(bot_names)
+        flings = total_flings_reported
 
     stats_data = {
         "botCount": bot_count,
@@ -162,6 +182,7 @@ def get_stats_data():
 # --- Start Background Cleanup ---
 cleanup_thread = threading.Thread(target=cleanup_stale_reservations, daemon=True)
 cleanup_thread.start()
+logging.info("Background cleanup thread started.")
 logging.info("Background cleanup thread started.")
 
 if __name__ == '__main__':
