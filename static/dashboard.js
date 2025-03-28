@@ -22,7 +22,7 @@ const themeSelectorEl = document.getElementById('theme-selector');
 const themeLinkEl = document.getElementById('hljs-theme-link');
 
 // --- Constants and State Variables ---
-const UPDATE_INTERVAL = 7000; // ms
+const UPDATE_INTERVAL = 1500; // ms
 const HLJS_CDN_BASE = "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/";
 const LOCALSTORAGE_THEME_KEY = 'tcdDashboardTheme';
 
@@ -345,18 +345,32 @@ function setErrorState(errorMessage) {
 function applyTheme(themeValue) {
     if (!themeLinkEl || !themeValue) return;
     const newThemeUrl = `${HLJS_CDN_BASE}${themeValue}.min.css`;
-    if (themeLinkEl.getAttribute('href') !== newThemeUrl) {
+    const currentHref = themeLinkEl.getAttribute('href');
+
+    if (currentHref !== newThemeUrl) {
         console.log("Applying theme:", themeValue);
         themeLinkEl.setAttribute('href', newThemeUrl);
-        // setTimeout(() => {
-        //     if (typeof hljs !== 'undefined' && reservationsContainerEl && !reservationsContainerEl.classList.contains('loading') && !reservationsContainerEl.classList.contains('empty')) {
-        //         // Re-highlight existing code blocks
-        //          const codeBlocks = reservationsContainerEl.querySelectorAll('code.language-json');
-        //          codeBlocks.forEach(block => hljs.highlightElement(block));
-        //          console.log("Re-highlighted code blocks for new theme.");
-        //     }
-        // }, 50);
+
+        setTimeout(() => {
+            if (typeof hljs !== 'undefined' && hljs.highlightElement && reservationsContainerEl &&
+                !reservationsContainerEl.classList.contains('loading') &&
+                !reservationsContainerEl.classList.contains('empty'))
+            {
+                const codeBlocks = reservationsContainerEl.querySelectorAll('code.language-json');
+                if (codeBlocks.length > 0) {
+                    console.log(`Re-highlighting ${codeBlocks.length} code blocks for theme: ${themeValue}`);
+                    codeBlocks.forEach(block => {
+                        try {
+                            hljs.highlightElement(block);
+                        } catch(e) {
+                            console.error("Error re-highlighting block:", e, block);
+                        }
+                    });
+                }
+            }
+        }, 100);
     }
+
     if (themeSelectorEl.value !== themeValue) {
         themeSelectorEl.value = themeValue;
     }
