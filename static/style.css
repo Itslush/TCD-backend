@@ -463,7 +463,6 @@ h1::after {
 
 /* Removed gradient styles from json-controls */
 
-
 pre#json-pre-container { padding: 0; border-radius: 8px; border: 1px solid var(--border-color); max-height: 450px; overflow: auto; margin: 0; background-color: transparent; transition: display 0s ease 0.3s; }
 pre#json-pre-container.hidden { display: none; transition: none; }
 #reservations-container { padding: 10px; font-family: var(--code-font-family); font-size: 0.9em; line-height: 1.5; }
@@ -487,21 +486,61 @@ pre#json-pre-container.hidden { display: none; transition: none; }
 .live-indicator.pulsing { animation: pulse 1.5s infinite cubic-bezier(0.66, 0, 0, 1); }
 
 @media (max-width: 768px) {
-     .container { padding: 25px 30px; }
+    .container { padding: 25px 30px; }
     h1 { font-size: 2em; }
     .stats-grid { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 20px; }
-     .stat-item .value { font-size: 2.2em; }
+    .stat-item .value { font-size: 2.2em; }
     pre#json-pre-container { max-height: 350px; }
     .region-stats { padding: 15px 20px; }
-    .json-controls { justify-content: flex-end; }
-    .top-bar { padding: 0 15px; }
-    body { padding: calc(var(--top-bar-height) + 25px) 15px 25px 15px; }
-    /* Hide gradient text labels on smaller screens? Maybe not needed */
-    .top-gradient-controls { gap: 8px; } /* Reduce gap */
+    /* .json-controls { justify-content: flex-end; } No longer needed here */
+
+    /* --- Start Top Bar Layout for 768px and below --- */
+    body {
+        /* Adjust padding for the wrapped top bar height */
+        /* Estimate: 2 rows ~ 30-35px each + padding */
+        padding-top: 80px; /* Fine-tune this value */
+    }
+
+    .top-bar {
+        flex-wrap: wrap; /* Allow wrapping */
+        height: auto; /* Allow height to adjust */
+        padding: 8px 15px; /* Adjust padding */
+        justify-content: space-between; /* Keep main sections apart */
+    }
+
+    .top-status {
+        flex: 0 1 auto;
+        order: 1; /* First item */
+        margin-bottom: 0;
+        padding-right: 10px;
+    }
+
+    .top-auth-controls {
+        flex: 0 1 auto;
+        order: 2; /* Second item */
+        justify-content: flex-end;
+        margin-bottom: 0;
+    }
+
+    .top-gradient-controls {
+        flex-basis: 100%; /* Full width, force wrap */
+        order: 3; /* Third item (last) */
+        justify-content: center; /* Center the controls */
+        margin-top: 8px; /* Space above */
+        gap: 8px; /* Reduce gap between presets and custom */
+    }
+    /* --- End Top Bar Layout for 768px and below --- */
+
+    /* Keep swatch/picker size adjustments for this breakpoint if desired */
+    .gradient-swatch { width: 19px; height: 19px; }
+    input.gradient-color-picker { width: 19px; height: 19px; }
 }
 
 @media (max-width: 600px) {
-    body { padding: calc(var(--top-bar-height) + 20px) 10px 20px 10px; }
+    body {
+        /* Estimate height: ~30px for first row + ~30px for second row + padding */
+        padding-top: 75px; /* Adjust this based on testing */
+    }
     .container { padding: 20px 15px; }
     h1 { font-size: 1.8em; }
     .subtitle { font-size: 1em; margin-bottom: 30px; }
@@ -517,13 +556,40 @@ pre#json-pre-container.hidden { display: none; transition: none; }
      .region-stats { padding: 15px; margin-bottom: 30px; }
      #region-distribution-list { font-size: 0.9em; }
 
-    /* Top Bar adjustments for small screens */
-    .top-bar { font-size: 0.85em; flex-wrap: wrap; height: auto; padding: 5px 10px; }
-    .top-status { flex-basis: 50%; order: 1; justify-content: flex-start; margin-bottom: 5px;}
-    .top-gradient-controls { flex-basis: 100%; order: 3; justify-content: center; margin-top: 5px; }
-    .top-auth-controls { flex-basis: 50%; order: 2; justify-content: flex-end; margin-bottom: 5px;}
-    body { padding-top: 80px; } /* Increase body padding more drastically */
+    /* --- Top Bar Mobile Fixes --- */
+    .top-bar {
+        font-size: 0.85em;
+        flex-wrap: wrap; /* Allow wrapping */
+        height: auto; /* Allow height to adjust */
+        padding: 8px 10px; /* Adjust padding */
+        justify-content: space-between; /* Keep main sections apart */
+    }
+
+    .top-status {
+        /* Take up available space on the left, but don't grow excessively */
+        flex: 0 1 auto;
+        order: 1; /* First item */
+        margin-bottom: 0; /* Remove bottom margin */
+        padding-right: 10px; /* Add some space to its right */
+    }
+
+    .top-auth-controls {
+         /* Take up available space on the right, don't grow */
+        flex: 0 1 auto;
+        order: 2; /* Second item */
+        justify-content: flex-end; /* Align button to the right */
+        margin-bottom: 0; /* Remove bottom margin */
+    }
+
+    .top-gradient-controls {
+        /* Force onto a new line, take full width */
+        flex-basis: 100%;
+        order: 3; /* Third item (last) */
+        justify-content: center; /* Center the controls */
+        margin-top: 8px; /* Add space above */
+        gap: 8px; /* Adjust gap if needed */
+    }
+
     .gradient-swatch { width: 18px; height: 18px; }
     input.gradient-color-picker { width: 18px; height: 18px; }
-
 }

@@ -36,10 +36,9 @@ const DEFAULT_GRADIENT_COLOR_2 = '#ed9344';
 // Re-added preset definitions
 const PREDEFINED_GRADIENTS = [
     { id: 'brand', color1: '#ee44b6', color2: '#ed9344', name: 'Brand Default' },
-    { id: 'ocean', color1: '#1CB5E0', color2: '#000046', name: 'Ocean Blue' },
     { id: 'sunset', color1: '#FF512F', color2: '#DD2476', name: 'Sunset Red' },
-    { id: 'forest', color1: '#138808', color2: '#2B5F2B', name: 'Forest Green' },
-    { id: 'purple', color1: '#DA22FF', color2: '#9733EE', name: 'Deep Purple' }
+    { id: 'purple', color1: '#DA22FF', color2: '#9733EE', name: 'Deep Purple' },
+    { id: 'monotone', color1: '#d1d1d1', color2: '#787878', name: 'Corpo Neutral'}
 ];
 
 
