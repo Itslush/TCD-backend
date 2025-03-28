@@ -341,7 +341,7 @@ def increment_fling_count():
     try:
         # Emit the event named 'new_fling' with the fling_event data
         # broadcast=True ensures all connected dashboard clients receive it
-        socketio.emit('new_fling', fling_event, broadcast=True)
+        socketio.emit('new_fling', fling_event)
         logging.info(f"Emitted 'new_fling' event via Socket.IO.")
     except Exception as e:
         # Log any errors during the emit process
