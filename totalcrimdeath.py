@@ -265,8 +265,8 @@ def get_stats_data():
 
 cleanup_thread = threading.Thread(target=cleanup_stale_reservations, daemon=True)
 cleanup_thread.start()
-logging.info("Background cleanup thread started.")
+logging.info("Background cleanup started.")
 
 if __name__ == '__main__':
-    logging.info("Starting Flask application...")
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    logging.info("Starting TCD-API...")
+    app.run(host='0.0.0.0', port=5000, debug=True)
