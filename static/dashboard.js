@@ -9,6 +9,7 @@ const toggleJsonBtn = document.getElementById('toggle-json');
 const jsonPreContainer = document.getElementById('json-pre-container');
 const copyJsonBtn = document.getElementById('copy-json');
 const liveIndicator = document.querySelector('.live-indicator');
+const topLiveIndicator = document.querySelector('.top-live-indicator'); // Added top indicator
 const statItems = {
     bots: document.getElementById('stat-bots'),
     servers: document.getElementById('stat-servers'),
@@ -19,20 +20,28 @@ const regionContainer = document.getElementById('region-stats-container');
 const sortButtons = document.querySelectorAll('.sort-btn');
 const themeSelectorEl = document.getElementById('theme-selector');
 const themeLinkEl = document.getElementById('hljs-theme-link');
-const gradientSelectorContainerEl = document.getElementById('gradient-selector-container');
+const gradientColorPicker1 = document.getElementById('gradient-color-1');
+const gradientColorPicker2 = document.getElementById('gradient-color-2');
+const gradientSelectorContainerEl = document.getElementById('gradient-selector-container'); // Preset container
+
 
 const UPDATE_INTERVAL = 1500;
 const HLJS_CDN_BASE = "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/";
 const LOCALSTORAGE_THEME_KEY = 'tcdDashboardTheme';
+const LOCALSTORAGE_GRADIENT_COLOR_1 = 'tcdGradientColor1';
+const LOCALSTORAGE_GRADIENT_COLOR_2 = 'tcdGradientColor2';
+const DEFAULT_GRADIENT_COLOR_1 = '#ee44b6';
+const DEFAULT_GRADIENT_COLOR_2 = '#ed9344';
+
+// Re-added preset definitions
 const PREDEFINED_GRADIENTS = [
-    { id: 'brand', value: 'linear-gradient(90deg, rgb(238, 68, 182) 0%, rgb(237, 147, 68) 100%)', name: 'Brand Default' },
-    { id: 'ocean', value: 'linear-gradient(90deg, #1CB5E0 0%, #000046 100%)', name: 'Ocean Blue' },
-    { id: 'sunset', value: 'linear-gradient(90deg, #FF512F 0%, #DD2476 100%)', name: 'Sunset Red' },
-    { id: 'forest', value: 'linear-gradient(90deg, #138808 0%, #2B5F2B 100%)', name: 'Forest Green' },
-    { id: 'purple', value: 'linear-gradient(90deg, #DA22FF 0%, #9733EE 100%)', name: 'Deep Purple' }
+    { id: 'brand', color1: '#ee44b6', color2: '#ed9344', name: 'Brand Default' },
+    { id: 'ocean', color1: '#1CB5E0', color2: '#000046', name: 'Ocean Blue' },
+    { id: 'sunset', color1: '#FF512F', color2: '#DD2476', name: 'Sunset Red' },
+    { id: 'forest', color1: '#138808', color2: '#2B5F2B', name: 'Forest Green' },
+    { id: 'purple', color1: '#DA22FF', color2: '#9733EE', name: 'Deep Purple' }
 ];
-const DEFAULT_GRADIENT_ID = 'brand';
-const LOCALSTORAGE_GRADIENT_KEY = 'tcdDashboardGradientId';
+
 
 let currentSortKey = 'timestamp';
 let initialLoadComplete = false;
@@ -74,6 +83,10 @@ function processUpdate(stats, reservations) {
     if (lastUpdatedEl) lastUpdatedEl.textContent = new Date().toLocaleTimeString();
     if (liveIndicator && !liveIndicator.classList.contains('pulsing')) {
         liveIndicator.classList.add('pulsing');
+    }
+    // Update top live indicator
+    if (topLiveIndicator && !topLiveIndicator.classList.contains('pulsing')) {
+        topLiveIndicator.classList.add('pulsing');
     }
 
     updateRegionDistribution(stats?.botsPerRegion);
@@ -277,6 +290,7 @@ function setInitialLoadingState() {
          regionListEl.innerHTML = '<li>Loading regional data...</li>';
     }
     if (liveIndicator) liveIndicator.classList.remove('pulsing');
+    if (topLiveIndicator) topLiveIndicator.classList.remove('pulsing'); // Stop top pulse
     if (lastUpdatedEl) lastUpdatedEl.textContent = 'Never';
 }
 
@@ -307,6 +321,7 @@ function setErrorState(errorMessage) {
 
         if (lastUpdatedEl) lastUpdatedEl.textContent = 'Update Failed';
         if (liveIndicator) liveIndicator.classList.remove('pulsing');
+        if (topLiveIndicator) topLiveIndicator.classList.remove('pulsing'); // Stop top pulse on error
 
     } else {
         if (lastUpdatedEl) {
@@ -316,6 +331,9 @@ function setErrorState(errorMessage) {
         }
         if (liveIndicator && !liveIndicator.classList.contains('pulsing')) {
              liveIndicator.classList.add('pulsing');
+        }
+        if (topLiveIndicator && !topLiveIndicator.classList.contains('pulsing')) {
+             topLiveIndicator.classList.add('pulsing'); // Start top pulse on success
         }
     }
 }
@@ -339,49 +357,71 @@ function loadThemePreference() {
     let savedTheme = null;
     try {
         savedTheme = localStorage.getItem(LOCALSTORAGE_THEME_KEY);
-    } catch(e) { console.warn("Could not access localStorage:", e.message); }
+    } catch(e) { console.warn("Could not access localStorage for theme:", e.message); }
     const initialTheme = savedTheme || 'atom-one-dark';
     applyTheme(initialTheme);
 }
 
-function findGradientById(id) {
-    return PREDEFINED_GRADIENTS.find(g => g.id === id);
+// Finds a PRESET gradient that matches the given colors
+function findPresetByColors(color1, color2) {
+     return PREDEFINED_GRADIENTS.find(g => g.color1 === color1 && g.color2 === color2);
 }
 
-function applyGradient(gradientId) {
-    const gradient = findGradientById(gradientId) || findGradientById(DEFAULT_GRADIENT_ID);
+// Updated applyGradient - applies colors and manages preset highlights
+function applyGradient(color1, color2) {
+    const gradientValue = `linear-gradient(90deg, ${color1} 0%, ${color2} 100%)`;
+    console.log("Applying gradient:", gradientValue);
+    document.documentElement.style.setProperty('--brand-gradient', gradientValue);
 
-    if (!gradient) {
-        console.error("Could not find default gradient. Check PREDEFINED_GRADIENTS.");
-        return;
+    if (gradientColorPicker1 && gradientColorPicker1.value !== color1) {
+        gradientColorPicker1.value = color1;
+    }
+    if (gradientColorPicker2 && gradientColorPicker2.value !== color2) {
+        gradientColorPicker2.value = color2;
     }
 
-    console.log("Applying gradient:", gradient.name);
-    document.documentElement.style.setProperty('--brand-gradient', gradient.value);
-
-    const swatches = gradientSelectorContainerEl.querySelectorAll('.gradient-swatch');
-    swatches.forEach(swatch => {
-        if (swatch.dataset.gradientId === gradient.id) {
-            swatch.classList.add('active');
-            swatch.setAttribute('aria-pressed', 'true');
-        } else {
-            swatch.classList.remove('active');
-            swatch.setAttribute('aria-pressed', 'false');
-        }
+    // Check if the applied colors match a preset and highlight it
+    const matchingPreset = findPresetByColors(color1, color2);
+    const swatches = gradientSelectorContainerEl?.querySelectorAll('.gradient-swatch');
+    swatches?.forEach(swatch => {
+        const isActive = matchingPreset && swatch.dataset.gradientId === matchingPreset.id;
+        swatch.classList.toggle('active', isActive);
+        swatch.setAttribute('aria-pressed', isActive ? 'true' : 'false');
     });
 }
 
 function loadGradientPreference() {
-    let savedGradientId = null;
+    let savedColor1 = null;
+    let savedColor2 = null;
     try {
-      savedGradientId = localStorage.getItem(LOCALSTORAGE_GRADIENT_KEY);
+      savedColor1 = localStorage.getItem(LOCALSTORAGE_GRADIENT_COLOR_1);
+      savedColor2 = localStorage.getItem(LOCALSTORAGE_GRADIENT_COLOR_2);
     } catch (e) {
-      console.warn("Could not access localStorage:", e.message);
+      console.warn("Could not access localStorage for gradient:", e.message);
     }
-    const initialGradientId = savedGradientId && findGradientById(savedGradientId) ? savedGradientId : DEFAULT_GRADIENT_ID;
-    applyGradient(initialGradientId);
+
+    const initialColor1 = savedColor1 || DEFAULT_GRADIENT_COLOR_1;
+    const initialColor2 = savedColor2 || DEFAULT_GRADIENT_COLOR_2;
+
+    applyGradient(initialColor1, initialColor2); // Applies colors and updates picker values & preset highlights
 }
 
+
+function handleGradientChange() {
+    const color1 = gradientColorPicker1.value;
+    const color2 = gradientColorPicker2.value;
+
+    applyGradient(color1, color2); // This will now also deselect presets if colors don't match
+
+    try {
+       localStorage.setItem(LOCALSTORAGE_GRADIENT_COLOR_1, color1);
+       localStorage.setItem(LOCALSTORAGE_GRADIENT_COLOR_2, color2);
+    } catch (e) {
+       console.warn("Could not save gradient colors to localStorage:", e.message);
+    }
+}
+
+// Re-added setupGradientSelector for presets
 function setupGradientSelector() {
     if (!gradientSelectorContainerEl) return;
 
@@ -389,20 +429,24 @@ function setupGradientSelector() {
         const swatch = document.createElement('div');
         swatch.classList.add('gradient-swatch');
         swatch.dataset.gradientId = gradient.id;
-        swatch.style.backgroundImage = gradient.value;
+        // Use the two colors to make the gradient background
+        swatch.style.backgroundImage = `linear-gradient(90deg, ${gradient.color1} 0%, ${gradient.color2} 100%)`;
         swatch.title = gradient.name;
         swatch.setAttribute('role', 'button');
         swatch.setAttribute('aria-pressed', 'false');
         swatch.setAttribute('tabindex', '0');
 
         swatch.addEventListener('click', () => {
-            const selectedId = swatch.dataset.gradientId;
-            applyGradient(selectedId);
+            // Apply the preset's colors
+            applyGradient(gradient.color1, gradient.color2);
+            // Save the chosen preset's colors
             try {
-               localStorage.setItem(LOCALSTORAGE_GRADIENT_KEY, selectedId);
+               localStorage.setItem(LOCALSTORAGE_GRADIENT_COLOR_1, gradient.color1);
+               localStorage.setItem(LOCALSTORAGE_GRADIENT_COLOR_2, gradient.color2);
             } catch (e) {
-               console.warn("Could not save gradient to localStorage:", e.message);
+               console.warn("Could not save preset gradient to localStorage:", e.message);
             }
+             // applyGradient already handles highlighting the correct swatch
         });
 
         swatch.addEventListener('keydown', (event) => {
@@ -416,6 +460,7 @@ function setupGradientSelector() {
     });
 }
 
+// --- Event Listeners ---
 
 toggleJsonBtn.addEventListener('click', () => {
     if (jsonPreContainer) {
@@ -525,11 +570,19 @@ themeSelectorEl.addEventListener('change', () => {
     }, 150);
 });
 
+if (gradientColorPicker1 && gradientColorPicker2) {
+    gradientColorPicker1.addEventListener('input', handleGradientChange);
+    gradientColorPicker2.addEventListener('input', handleGradientChange);
+} else {
+    console.error("Gradient color pickers not found!");
+}
+
+// --- Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
     console.log("DOM fully loaded. Initializing.");
-    setupGradientSelector();
+    setupGradientSelector(); // Setup preset swatches
     loadThemePreference();
-    loadGradientPreference();
+    loadGradientPreference(); // Load custom/preset gradient colors
     setInitialLoadingState();
     updateData();
     setInterval(updateData, UPDATE_INTERVAL);

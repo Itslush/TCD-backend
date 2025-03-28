@@ -10,8 +10,9 @@
     --highlight-bg: #3a3a40;
     --code-bg-color: #282c34;
     --code-text-color: #abb2bf;
+    --top-bar-height: 50px;
 
-    --brand-gradient: linear-gradient(90deg, rgb(238, 68, 182) 0%, rgb(237, 147, 68) 100%);
+    --brand-gradient: linear-gradient(90deg, #ee44b6 0%, #ed9344 100%);
 
     --font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
     --code-font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
@@ -19,6 +20,19 @@
     --transition-fast: 0.2s ease;
     --transition-base: 0.3s ease;
 }
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
 
 body {
     margin: 0;
@@ -28,12 +42,147 @@ body {
     line-height: 1.6;
     display: flex;
     justify-content: center;
-    padding: 40px 20px;
+    padding: calc(var(--top-bar-height) + 40px) 20px 40px 20px;
     min-height: 100vh;
     box-sizing: border-box;
     background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.07) 1px, transparent 0);
     background-size: 25px 25px;
 }
+
+/* Top Bar Styles */
+.top-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: var(--top-bar-height);
+    background-color: rgba(26, 26, 29, 0.85);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border-color);
+    padding: 0 25px;
+    display: flex;
+    justify-content: space-between; /* Space out main sections */
+    align-items: center;
+    z-index: 1000;
+    box-sizing: border-box;
+    color: var(--text-muted-color);
+}
+
+.top-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+    flex-shrink: 0; /* Prevent shrinking */
+}
+
+.top-live-indicator {
+    width: 10px;
+    height: 10px;
+    background-color: var(--accent-color);
+    border-radius: 50%;
+    display: inline-block;
+    /* Consider adding pulsing animation if desired */
+     animation: pulse 1.5s infinite cubic-bezier(0.66, 0, 0, 1);
+}
+/* Add the pulse animation */
+@keyframes pulse { 0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(76, 175, 80, 0); } 100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); } }
+
+
+.top-gradient-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px; /* Space between presets and custom picker */
+    /* Allows this section to take available space if needed, but won't push others out */
+    flex-grow: 1;
+    justify-content: center; /* Center the gradient controls */
+}
+
+#gradient-selector-container { /* Preset Swatches in Top Bar */
+    display: flex;
+    align-items: center;
+    gap: 6px; /* Smaller gap between swatches */
+    padding: 0; /* No extra padding needed */
+    background-color: transparent; /* No background needed */
+    border-radius: 0;
+    height: auto; /* Let height be determined by content */
+    align-self: center;
+}
+
+.gradient-swatch { /* Preset Swatch Style */
+    width: 20px; /* Smaller swatches */
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid var(--border-color);
+    cursor: pointer;
+    transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    background-size: cover;
+}
+
+.gradient-swatch:hover {
+    transform: scale(1.15);
+    border-color: var(--text-color);
+}
+
+.gradient-swatch.active {
+    border-color: var(--accent-color);
+    transform: scale(1.1);
+    box-shadow: 0 0 0 2px var(--accent-color);
+}
+
+.gradient-separator {
+    color: var(--border-color);
+    font-size: 1.2em;
+    line-height: 1;
+    align-self: center;
+}
+
+.gradient-picker-container { /* Custom Pickers in Top Bar */
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 0;
+    background-color: transparent;
+    border-radius: 0;
+    height: auto;
+    align-self: center;
+}
+
+input.gradient-color-picker { /* Custom Picker Style */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    width: 20px; /* Smaller pickers */
+    height: 20px;
+    background-color: transparent;
+    border: 2px solid var(--border-color);
+    border-radius: 50%;
+    cursor: pointer;
+    padding: 0;
+}
+input.gradient-color-picker::-webkit-color-swatch {
+    border-radius: 50%;
+    border: none;
+}
+input.gradient-color-picker::-moz-color-swatch {
+    border-radius: 50%;
+    border: none;
+}
+
+
+.top-auth-controls {
+    flex-shrink: 0; /* Prevent shrinking */
+}
+
+.placeholder-btn {
+    padding: 5px 10px;
+    font-size: 0.85em;
+}
+
+/* End Top Bar Styles */
+
 
 ::selection {
     background-color: rgba(76, 175, 80, 0.7);
@@ -270,7 +419,7 @@ h1::after {
 .json-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color); flex-wrap: wrap; gap: 10px; }
 .json-header h2 { color: var(--text-muted-color); font-weight: 500; font-size: 1.2em; margin: 0; display: flex; align-items: center; gap: 8px; border: none; padding: 0; }
 .json-header h2 i { color: var(--text-muted-color); font-size: 1em; }
-.json-controls { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+.json-controls { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; align-items: center; }
 
 .control-btn { background-color: var(--highlight-bg); color: var(--text-color); border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 0.9em; font-weight: 500; transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast); display: flex; align-items: center; gap: 5px; }
 .control-btn:hover:not(:disabled):not(.active) { background-color: var(--border-color); border-color: #555; }
@@ -296,39 +445,7 @@ h1::after {
     color: var(--text-color);
 }
 
-#gradient-selector-container {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 4px;
-    background-color: rgba(0, 0, 0, 0.1);
-    border-radius: 6px;
-    height: 25px;
-    align-self: center;
-}
-
-.gradient-swatch {
-    width: 25px;
-    height: 25px;
-    border-radius: 50%;
-    border: 2px solid var(--border-color);
-    cursor: pointer;
-    transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-    background-size: cover;
-}
-
-.gradient-swatch:hover {
-    transform: scale(1.15);
-    border-color: var(--text-color);
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
-}
-
-.gradient-swatch.active {
-    border-color: var(--accent-color);
-    transform: scale(1.1);
-    box-shadow: 0 0 0 2px var(--accent-color), 0 2px 5px rgba(0, 0, 0, 0.4);
-}
+/* Removed gradient styles from json-controls */
 
 
 pre#json-pre-container { padding: 0; border-radius: 8px; border: 1px solid var(--border-color); max-height: 450px; overflow: auto; margin: 0; background-color: transparent; transition: display 0s ease 0.3s; }
@@ -351,7 +468,6 @@ pre#json-pre-container.hidden { display: none; transition: none; }
 .last-updated span#last-updated-time { font-weight: 500; color: #ccc; }
 .live-indicator-wrap { display: flex; align-items: center; gap: 6px; font-weight: 500; color: var(--accent-color); }
 .live-indicator { width: 10px; height: 10px; background-color: var(--accent-color); border-radius: 50%; display: inline-block; position: relative; }
-@keyframes pulse { 0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(76, 175, 80, 0); } 100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); } }
 .live-indicator.pulsing { animation: pulse 1.5s infinite cubic-bezier(0.66, 0, 0, 1); }
 
 @media (max-width: 768px) {
@@ -362,13 +478,14 @@ pre#json-pre-container.hidden { display: none; transition: none; }
     pre#json-pre-container { max-height: 350px; }
     .region-stats { padding: 15px 20px; }
     .json-controls { justify-content: flex-end; }
-    #gradient-selector-container {
-
-    }
+    .top-bar { padding: 0 15px; }
+    body { padding: calc(var(--top-bar-height) + 25px) 15px 25px 15px; }
+    /* Hide gradient text labels on smaller screens? Maybe not needed */
+    .top-gradient-controls { gap: 8px; } /* Reduce gap */
 }
 
 @media (max-width: 600px) {
-    body { padding: 20px 10px; }
+    body { padding: calc(var(--top-bar-height) + 20px) 10px 20px 10px; }
     .container { padding: 20px 15px; }
     h1 { font-size: 1.8em; }
     .subtitle { font-size: 1em; margin-bottom: 30px; }
@@ -383,16 +500,14 @@ pre#json-pre-container.hidden { display: none; transition: none; }
     .last-updated { flex-direction: column; gap: 5px; }
      .region-stats { padding: 15px; margin-bottom: 30px; }
      #region-distribution-list { font-size: 0.9em; }
-     #gradient-selector-container {
-         justify-content: flex-start;
-         margin-top: 10px;
-         width: auto;
-         flex-wrap: wrap;
-         height: auto;
-         padding: 6px;
-    }
-    .gradient-swatch {
-        width: 22px;
-        height: 22px;
-    }
+
+    /* Top Bar adjustments for small screens */
+    .top-bar { font-size: 0.85em; flex-wrap: wrap; height: auto; padding: 5px 10px; }
+    .top-status { flex-basis: 50%; order: 1; justify-content: flex-start; margin-bottom: 5px;}
+    .top-gradient-controls { flex-basis: 100%; order: 3; justify-content: center; margin-top: 5px; }
+    .top-auth-controls { flex-basis: 50%; order: 2; justify-content: flex-end; margin-bottom: 5px;}
+    body { padding-top: 80px; } /* Increase body padding more drastically */
+    .gradient-swatch { width: 18px; height: 18px; }
+    input.gradient-color-picker { width: 18px; height: 18px; }
+
 }

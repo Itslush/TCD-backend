@@ -17,6 +17,33 @@
 
 </head>
 <body>
+
+    <div class="top-bar">
+        <div class="top-status">
+             <span class="top-live-indicator"></span> Status: Live
+        </div>
+
+        <!-- NEW: Gradient Controls Container in Top Bar -->
+        <div class="top-gradient-controls">
+             <div id="gradient-selector-container" title="Select Preset Brand Gradient">
+                <!-- Preset Swatches will be populated by JS -->
+             </div>
+             <span class="gradient-separator">|</span>
+             <div class="gradient-picker-container" title="Select Custom Brand Gradient">
+                 <label for="gradient-color-1" class="sr-only">Gradient Start Color</label>
+                 <input type="color" id="gradient-color-1" class="gradient-color-picker" value="#ee44b6">
+                 <label for="gradient-color-2" class="sr-only">Gradient End Color</label>
+                 <input type="color" id="gradient-color-2" class="gradient-color-picker" value="#ed9344">
+             </div>
+        </div>
+        <!-- END Gradient Controls Container -->
+
+        <div class="top-auth-controls">
+             <button class="control-btn placeholder-btn">Sign In</button>
+        </div>
+    </div>
+
+
     <div class="container">
         <h1>Operation TCD status:</h1>
         <p class="subtitle">Real-time statistics from all bots</p>
@@ -82,8 +109,7 @@
                         <option value="agate">Agate</option>
                     </select>
 
-                    <div id="gradient-selector-container" title="Select Gradient">
-                    </div>
+                    <!-- Gradient controls moved to top bar -->
 
                     <button id="copy-json" class="control-btn copy-btn" title="Copy JSON to clipboard">
                         <i class="far fa-copy"></i> Copy
@@ -108,6 +134,8 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
+
     <script src="{{ url_for('static', filename='dashboard.js') }}"></script>
+
 </body>
 </html>
