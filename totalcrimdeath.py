@@ -269,4 +269,4 @@ logging.info("Background cleanup started.")
 
 if __name__ == '__main__':
     logging.info("Starting TCD-API...")
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=False)

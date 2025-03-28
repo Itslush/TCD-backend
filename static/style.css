@@ -31,7 +31,6 @@ body {
     padding: 40px 20px;
     min-height: 100vh;
     box-sizing: border-box;
-
     background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.07) 1px, transparent 0);
     background-size: 25px 25px;
 }
@@ -331,6 +330,8 @@ h1::after {
 .json-controls {
     display: flex;
     gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
 }
 
 .control-btn {
@@ -342,19 +343,26 @@ h1::after {
     cursor: pointer;
     font-size: 0.9em;
     font-weight: 500;
-    transition: background-color var(--transition-fast), border-color var(--transition-fast);
+    transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
     display: flex;
     align-items: center;
     gap: 5px;
 }
 
-.control-btn:hover:not(:disabled) {
+.control-btn:hover:not(:disabled):not(.active) {
     background-color: var(--border-color);
     border-color: #555;
 }
 .control-btn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+}
+
+.sort-btn.active {
+    background-color: #4a4a50;
+    border-color: #666;
+    color: #fff;
+    cursor: default;
 }
 
 pre#json-pre-container {
@@ -528,9 +536,12 @@ pre#json-pre-container.hidden {
     }
     .json-header {
         align-items: flex-start;
+        flex-direction: column;
     }
     .json-controls {
-        margin-left: auto;
+        width: 100%;
+        justify-content: flex-start;
+        margin-top: 10px;
     }
     pre#json-pre-container {
         padding: 10px;
