@@ -127,27 +127,20 @@
         let updateScheduled = false;
 
         async function updateData() {
-            try {
-                const [statsResponse, reservationsResponse] = await Promise.all([
-                    fetch('/'),
-                    fetch('/reservations')
-                ]);
+            const [statsResponse, reservationsResponse] = await Promise.all([
+                fetch('/'),
+                fetch('/reservations')
+            ]);
 
-                if (!statsResponse.ok) throw new Error(`Stats fetch failed: ${statsResponse.status} ${statsResponse.statusText}`);
-                if (!reservationsResponse.ok) throw new Error(`Reservations fetch failed: ${reservationsResponse.status} ${reservationsResponse.statusText}`);
+            if (!statsResponse.ok) throw new Error(`Stats fetch failed: ${statsResponse.status} ${statsResponse.statusText}`);
+            if (!reservationsResponse.ok) throw new Error(`Reservations fetch failed: ${reservationsResponse.status} ${reservationsResponse.statusText}`);
 
-                const statsData = await statsResponse.json();
-                const reservationsData = await reservationsResponse.json();
+            const statsData = await statsResponse.json();
+            const reservationsData = await reservationsResponse.json();
 
-                processUpdate(statsData, reservationsData);
-                if(initialLoadComplete) setErrorState(null);
-                initialLoadComplete = true;
-
-            } catch (error) {
-                console.error("Error fetching data:", error);
-                setErrorState(error.message || "Unknown error");
-                initialLoadComplete = true;
-            }
+            processUpdate(statsData, reservationsData);
+            if(initialLoadComplete) setErrorState(null);
+            initialLoadComplete = true;
         }
 
         function processUpdate(stats, reservations) {
