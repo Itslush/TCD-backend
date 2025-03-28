@@ -49,21 +49,25 @@ let currentSortKey = 'timestamp';
 let initialLoadComplete = false;
 let previousReservationsData = null;
 let updateScheduled = false;
+let latestDisplayedFlingTimestamp = 0;
 
 async function updateData() {
     try {
-        const [statsResponse, reservationsResponse] = await Promise.all([
+        const [statsResponse, reservationsResponse, flingsResponse] = await Promise.all([
             fetch('/'),
-            fetch('/reservations')
+            fetch('/reservations'),
+            fetch('/flings')
         ]);
 
         if (!statsResponse.ok) throw new Error(`Stats fetch failed: ${statsResponse.status} ${statsResponse.statusText}`);
         if (!reservationsResponse.ok) throw new Error(`Reservations fetch failed: ${reservationsResponse.status} ${reservationsResponse.statusText}`);
+        if (!flingsResponse.ok) throw new Error(`Flings fetch failed: ${flingsResponse.status} ${flingsResponse.statusText}`);
 
         const statsData = await statsResponse.json();
         const reservationsData = await reservationsResponse.json();
+        const flingsData = await flingsResponse.json();
 
-        processUpdate(statsData, reservationsData);
+        processUpdate(statsData, reservationsData, flingsData);
 
         setErrorState(null);
         initialLoadComplete = true;
@@ -75,7 +79,7 @@ async function updateData() {
     }
 }
 
-function processUpdate(stats, reservations) {
+function processUpdate(stats, reservations, flings) {
     applyUpdateEffect(botCountEl, stats?.botCount);
     applyUpdateEffect(serverCountEl, stats?.serverCount);
     applyUpdateEffect(totalFlingsEl, stats?.totalFlings);
@@ -83,18 +87,13 @@ function processUpdate(stats, reservations) {
     applyUpdateEffect(flingRateEl, typeof rate === 'number' ? rate.toFixed(1) : '?');
 
     if (lastUpdatedEl) lastUpdatedEl.textContent = new Date().toLocaleTimeString();
-    if (liveIndicator && !liveIndicator.classList.contains('pulsing')) {
-        liveIndicator.classList.add('pulsing');
-    }
-    if (topLiveIndicator && !topLiveIndicator.classList.contains('pulsing')) {
-        topLiveIndicator.classList.add('pulsing');
-    }
+    if (liveIndicator && !liveIndicator.classList.contains('pulsing')) liveIndicator.classList.add('pulsing');
+    if (topLiveIndicator && !topLiveIndicator.classList.contains('pulsing')) topLiveIndicator.classList.add('pulsing');
 
     updateRegionDistribution(stats?.botsPerRegion);
 
     const currentDataString = JSON.stringify(reservations);
     const previousDataString = JSON.stringify(previousReservationsData);
-
     if (currentDataString !== previousDataString || !initialLoadComplete) {
         previousReservationsData = reservations;
         scheduleJsonUpdate(reservations);
@@ -109,7 +108,72 @@ function processUpdate(stats, reservations) {
             }
         }
     }
+    updateFlingFeed(flings);
 }
+
+
+function updateFlingFeed(flingsData) {
+    if (!flingFeedList || !Array.isArray(flingsData)) {
+        console.warn("Invalid flings data received or feed element missing.");
+        return;
+    }
+
+    let newEventsAdded = false;
+    let currentLatestTimestamp = latestDisplayedFlingTimestamp;
+
+    for (let i = flingsData.length - 1; i >= 0; i--) {
+        const fling = flingsData[i];
+        if (fling.timestamp > latestDisplayedFlingTimestamp) {
+            addFlingToFeed(fling);
+            newEventsAdded = true;
+            if (fling.timestamp > currentLatestTimestamp) {
+                currentLatestTimestamp = fling.timestamp;
+            }
+        }
+    }
+
+    if (currentLatestTimestamp > latestDisplayedFlingTimestamp) {
+        latestDisplayedFlingTimestamp = currentLatestTimestamp;
+    }
+
+    const emptyMessage = flingFeedList.querySelector('.empty-feed-message');
+    if (newEventsAdded && emptyMessage) {
+        emptyMessage.remove();
+    } else if (flingFeedList.children.length === 0 && !emptyMessage) {
+         flingFeedList.innerHTML = '<li class="empty-feed-message">No recent fling reports.</li>';
+    }
+
+     if (newEventsAdded) {
+         const errorMessages = flingFeedList.querySelectorAll('.error-feed-message');
+         errorMessages.forEach(msg => msg.remove());
+     }
+}
+
+function addFlingToFeed(flingData) {
+    if (!flingFeedList) return;
+
+    const emptyMessage = flingFeedList.querySelector('.empty-feed-message');
+    if (emptyMessage) emptyMessage.remove();
+
+    const li = document.createElement('li');
+    const eventTime = new Date(flingData.timestamp * 1000);
+    const timeString = eventTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const botName = escapeHtml(flingData.botName || 'Unknown Bot');
+    const targetName = escapeHtml(flingData.target || 'Unknown Target');
+
+    li.innerHTML = `
+        <span class="fling-details">
+            <span class="fling-bot">${botName}</span> flung <span class="fling-target">${targetName}</span>
+        </span>
+        <span class="fling-time">${timeString}</span>
+    `;
+    flingFeedList.prepend(li);
+
+    while (flingFeedList.children.length > MAX_FEED_ITEMS) {
+        flingFeedList.lastChild.remove();
+    }
+}
+
 
 function updateRegionDistribution(regionData) {
     if (!regionListEl) return;
@@ -199,12 +263,9 @@ function scheduleJsonUpdate(reservationsData) {
                 }
              } else if (typeof sortedData === 'object' && Object.keys(sortedData).length > 0) {
                  console.warn("Rendering single object for reservations:", sortedData);
-
                  isEmpty = false;
-
                  const itemString = JSON.stringify(sortedData, null, 2);
                  let highlightedCode = itemString;
-
                  if (typeof hljs !== 'undefined' && hljs.highlight) { try { highlightedCode = hljs.highlight(itemString, { language: 'json' }).value; } catch(e){} }
                  finalHtml = `<div class="json-entry"><code class="language-json">${highlightedCode}</code></div>`;
                  reservationsContainerEl.classList.remove('loading');
@@ -327,10 +388,6 @@ function setErrorState(errorMessage) {
         if (liveIndicator) liveIndicator.classList.remove('pulsing');
         if (topLiveIndicator) topLiveIndicator.classList.remove('pulsing');
 
-        if (flingFeedList) {
-             addErrorToFeed(`Data update error: ${escapeHtml(errorMessage)}`);
-        }
-
     } else {
         if (lastUpdatedEl && (lastUpdatedEl.textContent === 'Update Failed' || lastUpdatedEl.textContent === 'Never')) {
             lastUpdatedEl.textContent = 'Updating...';
@@ -350,7 +407,6 @@ function setErrorState(errorMessage) {
          }
     }
 }
-
 
 
 function applyTheme(themeValue) {
@@ -476,103 +532,7 @@ function setupGradientSelector() {
     });
 }
 
-function setupSocketIO() {
-    if (typeof io === 'undefined') {
-        console.error("Socket.IO client library not loaded. Live feed disabled.");
-        addErrorToFeed("Live feed library failed to load.");
-        return;
-    }
-
-    try {
-        const socket = io({
-            transports: ['websocket']
-        });
-
-        socket.on('connect', () => {
-            console.log('Socket.IO connected successfully.');
-
-            const feedError = flingFeedList?.querySelector('.error-feed-message');
-            if (feedError && feedError.textContent.includes('connection error')) {
-                 feedError.remove();
-
-                 if (flingFeedList && flingFeedList.children.length === 0) {
-                     flingFeedList.innerHTML = '<li class="empty-feed-message">Waiting for fling reports...</li>';
-                 }
-            }
-        });
-
-        socket.on('disconnect', (reason) => {
-            console.warn('Socket.IO disconnected:', reason);
-            addErrorToFeed(`Live feed disconnected: ${reason}. Reconnecting...`);
-        });
-
-        socket.on('connect_error', (error) => {
-            console.error('Socket.IO connection error:', error);
-            addErrorToFeed(`Live feed connection error: ${error.message || 'Unknown error'}`);
-        });
-
-        socket.on('new_fling', (data) => {
-            console.log('Received new_fling event:', data);
-            addFlingToFeed(data);
-        });
-    } catch (error) {
-        console.error("Failed to initialize Socket.IO:", error);
-        addErrorToFeed('Failed to initialize live feed client.');
-    }
-}
-
-function addFlingToFeed(flingData) {
-    if (!flingFeedList) return;
-
-    const emptyMessage = flingFeedList.querySelector('.empty-feed-message');
-    if (emptyMessage) {
-        emptyMessage.remove();
-    }
-
-    const errorMessages = flingFeedList.querySelectorAll('.error-feed-message');
-    errorMessages.forEach(msg => msg.remove());
-
-    const li = document.createElement('li');
-
-    const eventTime = new Date(flingData.timestamp * 1000);
-    const timeString = eventTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-
-    const botName = escapeHtml(flingData.botName || 'Unknown Bot');
-    const targetName = escapeHtml(flingData.target || 'Unknown Target');
-
-    li.innerHTML = `
-        <span class="fling-details">
-            <span class="fling-bot">${botName}</span> flung <span class="fling-target">${targetName}</span>
-        </span>
-        <span class="fling-time">${timeString}</span>
-    `;
-    flingFeedList.prepend(li);
-
-    while (flingFeedList.children.length > MAX_FEED_ITEMS) {
-        flingFeedList.lastChild.remove();
-    }
-}
-
-function addErrorToFeed(message) {
-     if (!flingFeedList) return;
-     const existingError = Array.from(flingFeedList.querySelectorAll('.error-feed-message'))
-                              .find(li => li.textContent.includes(message.split(':')[0]));
-     if (existingError) return;
-
-     const emptyMessage = flingFeedList.querySelector('.empty-feed-message');
-     if (emptyMessage) emptyMessage.remove();
-
-     const li = document.createElement('li');
-     li.className = 'error-feed-message';
-     li.textContent = message;
-     flingFeedList.prepend(li);
-
-     while (flingFeedList.children.length > MAX_FEED_ITEMS) {
-         flingFeedList.lastChild.remove();
-     }
-}
-
-function escapeHtml(unsafe) 
+function escapeHtml(unsafe)
 {
     if (typeof unsafe !== 'string') return unsafe;
     return unsafe
@@ -582,8 +542,6 @@ function escapeHtml(unsafe)
          .replace(/"/g, '"')
          .replace(/'/g, "'");
 }
-
-
 
 toggleJsonBtn?.addEventListener('click', () => {
     if (jsonPreContainer) {
@@ -615,7 +573,7 @@ copyJsonBtn?.addEventListener('click', () => {
         } else {
             dataToCopy = previousReservationsData;
         }
-        
+
         const jsonTextToCopy = JSON.stringify(dataToCopy, null, 2);
         navigator.clipboard.writeText(jsonTextToCopy).then(() => {
             copyJsonBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
@@ -685,19 +643,18 @@ themeSelectorEl?.addEventListener('change', () => {
 if (gradientColorPicker1 && gradientColorPicker2) {
     gradientColorPicker1.addEventListener('input', handleGradientChange);
     gradientColorPicker2.addEventListener('input', handleGradientChange);
-} 
+}
 else
 {
     console.error("Gradient color pickers not found!");
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("DOM fully loaded. Initializing TCD Dashboard.");
+    console.log("DOM fully loaded. Initializing TCD Dashboard (Polling Feed).");
     setupGradientSelector();
     loadThemePreference();
     loadGradientPreference();
     setInitialLoadingState();
     updateData();
     setInterval(updateData, UPDATE_INTERVAL);
-    setupSocketIO();
 });

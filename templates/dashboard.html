@@ -76,21 +76,18 @@
         <div class="live-feed-section">
             <h2><i class="fas fa-wind"></i> Live Fling Feed</h2>
             <ul id="fling-feed">
-                
                 <li class="empty-feed-message">Waiting for fling reports...</li>
             </ul>
         </div>
-        
+
         <div class="json-view">
             <div class="json-header">
                 <h2><i class="fas fa-code"></i> Live Server Reservations</h2>
                 <div class="json-controls">
-                    
                     <button id="sort-time" class="control-btn sort-btn active" title="Sort by newest first"><i class="fas fa-clock"></i> Time</button>
                     <button id="sort-players" class="control-btn sort-btn" title="Sort by player count (highest first)"><i class="fas fa-users"></i> Players</button>
                     <button id="sort-region" class="control-btn sort-btn" title="Sort by region (A-Z)"><i class="fas fa-map"></i> Region</button>
                     <button id="sort-id" class="control-btn sort-btn" title="Sort by server ID (A-Z)"><i class="fas fa-tag"></i> ID</button>
-                    
                     <select id="theme-selector" class="control-btn" title="Select JSON Syntax Theme">
                         <option value="atom-one-dark">Atom One Dark</option>
                         <option value="github-dark">GitHub Dark</option>
@@ -100,7 +97,6 @@
                         <option value="base16/monokai">Monokai</option>
                         <option value="agate">Agate</option>
                     </select>
-                    
                     <button id="copy-json" class="control-btn copy-btn" title="Copy JSON to clipboard"><i class="far fa-copy"></i> Copy</button>
                     <button id="toggle-json" class="control-btn toggle-btn" aria-expanded="true" aria-controls="json-pre-container">Hide</button>
                 </div>
@@ -116,10 +112,8 @@
         </p>
     </div>
 
-    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js" integrity="sha384-Gr6Lu2Ajx2UJw1EkQ28翌P4OPj7m2JCIMXNFMSfSutWx+MAKGUoQD+9RupcXO" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
-    
     <script src="{{ url_for('static', filename='dashboard.js') }}"></script>
 </body>
 </html>

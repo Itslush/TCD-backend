@@ -1,6 +1,2 @@
 Flask
 gunicorn
-Flask-SocketIO
-eventlet
-Flask-WTF
-Werkzeug
