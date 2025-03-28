@@ -379,10 +379,13 @@ function addFlingToFeed(flingData) {
     const timeString = eventTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     const botName = escapeHtml(flingData.botName || 'Unknown Bot');
     const targetName = escapeHtml(flingData.target || 'Unknown Target');
+    const serverId = escapeHtml(flingData.serverId || 'Unknown');
 
     li.innerHTML = `
         <span class="fling-details">
-            <span class="fling-bot">${botName}</span> flung <span class="fling-target">${targetName}</span>
+            <span class="fling-bot">${botName}</span> flung
+            <span class="fling-target">${targetName}</span>
+            <span class="fling-server">(Server: ${serverId})</span> {/* Added server ID here */}
         </span>
         <span class="fling-time">${timeString}</span>
     `;
@@ -458,9 +461,14 @@ function addChatToFeed(logData) {
     const playerName = escapeHtml(logData.playerName || 'Unknown Player');
     const message = escapeHtml(logData.message || '');
 
+    const serverId = escapeHtml(logData.serverId || 'Unknown');
+
     li.innerHTML = `
         <div class="chat-meta">
-            <span class="chat-player">${playerName}:</span>
+            <div> {/* Optional grouping div */}
+                <span class="chat-player">${playerName}:</span>
+                <span class="chat-server">(Server: ${serverId})</span> {/* Added server ID here */}
+            </div>
             <span class="chat-timestamp">${timeString}</span>
         </div>
         <div class="chat-message">${message}</div>
