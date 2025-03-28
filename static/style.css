@@ -1,26 +1,32 @@
+/* static/style.css */
+
 :root {
     --bg-color: #1a1a1d;
     --card-bg: #252529;
     --text-color: #f0f0f0;
     --text-muted-color: #a0a0a0;
     --border-color: #3a3a40;
-    --accent-color: #4CAF50;
-    --error-color: #f44336;
+    --accent-color: #4CAF50; /* Green for success/live */
+    --error-color: #f44336; /* Red for errors */
     --shadow-color: rgba(0, 0, 0, 0.3);
-    --highlight-bg: #3a3a40;
-    --code-bg-color: #282c34;
-    --code-text-color: #abb2bf;
-    --top-bar-height: 50px;
+    --highlight-bg: #3a3a40; /* Background for controls */
+    --code-bg-color: #282c34; /* Background for JSON entries */
+    --code-text-color: #abb2bf; /* Default text color in JSON */
+    --top-bar-height: 50px; /* Fixed height for the top bar */
 
+    /* Default brand gradient (updated by JS) */
     --brand-gradient: linear-gradient(90deg, #ee44b6 0%, #ed9344 100%);
 
+    /* Fonts */
     --font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
     --code-font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
 
+    /* Transitions */
     --transition-fast: 0.2s ease;
     --transition-base: 0.3s ease;
 }
 
+/* Screen Reader only utility class */
 .sr-only {
   position: absolute;
   width: 1px;
@@ -33,7 +39,7 @@
   border-width: 0;
 }
 
-
+/* Body Styles */
 body {
     margin: 0;
     font-family: var(--font-family);
@@ -41,32 +47,37 @@ body {
     color: var(--text-color);
     line-height: 1.6;
     display: flex;
-    justify-content: center;
-    padding: calc(var(--top-bar-height) + 40px) 20px 40px 20px;
+    flex-direction: column; /* Stack top-bar and container */
+    align-items: center; /* Center container horizontally */
+    padding-top: calc(var(--top-bar-height) + 40px); /* Space for fixed top bar + margin */
+    padding-bottom: 40px; /* Bottom padding */
+    padding-left: 20px; /* Side padding */
+    padding-right: 20px; /* Side padding */
     min-height: 100vh;
     box-sizing: border-box;
+    /* Subtle background pattern */
     background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.07) 1px, transparent 0);
     background-size: 25px 25px;
 }
 
 /* Top Bar Styles */
 .top-bar {
-    position: fixed;
+    position: fixed; /* Keep it fixed at the top */
     top: 0;
     left: 0;
     width: 100%;
     height: var(--top-bar-height);
-    background-color: rgba(26, 26, 29, 0.85);
-    backdrop-filter: blur(10px);
+    background-color: rgba(26, 26, 29, 0.85); /* Slightly transparent dark bg */
+    backdrop-filter: blur(10px); /* Frosted glass effect */
     -webkit-backdrop-filter: blur(10px);
     border-bottom: 1px solid var(--border-color);
-    padding: 0 25px;
+    padding: 0 25px; /* Side padding */
     display: flex;
     justify-content: space-between; /* Space out main sections */
-    align-items: center;
-    z-index: 1000;
+    align-items: center; /* Vertically center items */
+    z-index: 1000; /* Ensure it's above other content */
     box-sizing: border-box;
-    color: var(--text-muted-color);
+    color: var(--text-muted-color); /* Default text color in top bar */
 }
 
 .top-status {
@@ -74,7 +85,14 @@ body {
     align-items: center;
     gap: 8px;
     font-weight: 500;
-    flex-shrink: 0; /* Prevent shrinking */
+    flex-shrink: 0; /* Prevent this section from shrinking */
+}
+
+/* Pulsing animation for live indicators */
+@keyframes pulse {
+    0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(76, 175, 80, 0); }
+    100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
 }
 
 .top-live-indicator {
@@ -83,176 +101,144 @@ body {
     background-color: var(--accent-color);
     border-radius: 50%;
     display: inline-block;
-    /* Consider adding pulsing animation if desired */
-     animation: pulse 1.5s infinite cubic-bezier(0.66, 0, 0, 1);
+    animation: pulse 1.5s infinite cubic-bezier(0.66, 0, 0, 1); /* Apply pulse */
 }
-/* Add the pulse animation */
-@keyframes pulse { 0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(76, 175, 80, 0); } 100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); } }
-
 
 .top-gradient-controls {
     display: flex;
     align-items: center;
     gap: 12px; /* Space between presets and custom picker */
-    /* Allows this section to take available space if needed, but won't push others out */
-    flex-grow: 1;
-    justify-content: center; /* Center the gradient controls */
+    flex-grow: 1; /* Allow this section to take available space */
+    justify-content: center; /* Center the controls within its space */
 }
 
-#gradient-selector-container { /* Preset Swatches in Top Bar */
+#gradient-selector-container { /* Preset Swatches */
     display: flex;
     align-items: center;
     gap: 6px; /* Smaller gap between swatches */
-    padding: 0; /* No extra padding needed */
-    background-color: transparent; /* No background needed */
-    border-radius: 0;
-    height: auto; /* Let height be determined by content */
-    align-self: center;
 }
 
 .gradient-swatch { /* Preset Swatch Style */
-    width: 20px; /* Smaller swatches */
+    width: 20px;
     height: 20px;
     border-radius: 50%;
     border: 2px solid var(--border-color);
     cursor: pointer;
     transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-    background-size: cover;
+    background-size: cover; /* Ensure gradient covers the swatch */
 }
-
 .gradient-swatch:hover {
     transform: scale(1.15);
     border-color: var(--text-color);
 }
-
 .gradient-swatch.active {
     border-color: var(--accent-color);
     transform: scale(1.1);
-    box-shadow: 0 0 0 2px var(--accent-color);
+    box-shadow: 0 0 0 2px var(--accent-color); /* Highlight active swatch */
 }
 
 .gradient-separator {
     color: var(--border-color);
     font-size: 1.2em;
     line-height: 1;
-    align-self: center;
 }
 
-.gradient-picker-container { /* Custom Pickers in Top Bar */
+.gradient-picker-container { /* Custom Pickers */
     display: flex;
     align-items: center;
     gap: 5px;
-    padding: 0;
-    background-color: transparent;
-    border-radius: 0;
-    height: auto;
-    align-self: center;
 }
 
 input.gradient-color-picker { /* Custom Picker Style */
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    width: 20px; /* Keep defined dimensions */
-    height: 20px; /* Keep defined dimensions */
-    background-color: transparent;
-    border: 2px solid var(--border-color); /* Keep the visual border */
-    border-radius: 50%; /* Make the input boundary circular */
+    -webkit-appearance: none; -moz-appearance: none; appearance: none;
+    width: 20px; height: 20px;
+    background-color: transparent; /* Important for swatch visibility */
+    border: 2px solid var(--border-color);
+    border-radius: 50%;
     cursor: pointer;
-    /* --- Add/Ensure these --- */
     padding: 0 !important; /* Force remove padding */
-    box-sizing: border-box; /* Make sure border is included in dimensions */
-    /* --- --- */
-    vertical-align: middle; /* Helps align in flex container */
+    box-sizing: border-box; /* Include border in size */
+    vertical-align: middle;
 }
-
 input.gradient-color-picker::-webkit-color-swatch {
-    border-radius: 50%; /* Make the inner swatch circular */
-    border: none; /* No border on the swatch itself */
-    width: 100%; /* Fill the input area */
-    height: 100%; /* Fill the input area */
-    /* --- Add/Ensure these --- */
-    padding: 0 !important; /* Force remove padding */
-    box-sizing: border-box; /* Include padding/border if any were added (none here) */
-     /* --- --- */
+    border-radius: 50%; border: none; padding: 0 !important;
+    width: 100%; height: 100%; box-sizing: border-box;
 }
 input.gradient-color-picker::-moz-color-swatch {
-    border-radius: 50%; /* Make the inner swatch circular */
-    border: none; /* No border on the swatch itself */
-    width: 100%; /* Fill the input area */
-    height: 100%; /* Fill the input area */
-    /* --- Add/Ensure these --- */
-    padding: 0 !important; /* Force remove padding */
-    box-sizing: border-box; /* Include padding/border if any were added (none here) */
-    /* --- --- */
+    border-radius: 50%; border: none; padding: 0 !important;
+    width: 100%; height: 100%; box-sizing: border-box;
 }
 
 .top-auth-controls {
-    flex-shrink: 0; /* Prevent shrinking */
+    flex-shrink: 0; /* Prevent this section from shrinking */
 }
 
+/* Placeholder button style (will be replaced by login/logout links) */
 .placeholder-btn {
     padding: 5px 10px;
     font-size: 0.85em;
+    background-color: var(--highlight-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
 }
-
+.placeholder-btn:hover {
+    background-color: var(--border-color);
+}
 /* End Top Bar Styles */
 
-
+/* Text Selection Styles */
 ::selection {
-    background-color: rgba(76, 175, 80, 0.7);
+    background-color: rgba(76, 175, 80, 0.7); /* Green selection */
     color: var(--bg-color);
 }
-h1::selection {
-     background-color: rgba(238, 68, 182, 0.7);
-     color: var(--text-color) !important;
-     -webkit-text-fill-color: var(--text-color);
-}
+/* Specific selection for gradient text */
+h1::selection,
 .stat-item h2 i::selection {
-     background-color: rgba(238, 68, 182, 0.7);
+     background: var(--brand-gradient);
      color: var(--text-color) !important;
      -webkit-text-fill-color: var(--text-color);
 }
-
+/* Specific selection for code */
 .json-entry code ::selection {
     background-color: rgba(79, 83, 91, 0.99);
     color: inherit;
 }
 
+/* Main Content Container */
 .container {
-    background-color: rgba(37, 37, 41, 0.75);
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
+    background-color: rgba(37, 37, 41, 0.75); /* Semi-transparent card background */
+    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
     padding: 30px 40px;
     border-radius: 12px;
     box-shadow: 0 8px 25px var(--shadow-color);
-    max-width: 950px;
-    width: 100%;
+    max-width: 950px; /* Max width */
+    width: 100%; /* Responsive width */
     border: 1px solid rgba(58, 58, 64, 0.5);
     box-sizing: border-box;
 }
 
+/* Headings */
 h1 {
-    background: var(--brand-gradient);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    background: var(--brand-gradient); /* Apply gradient */
+    -webkit-background-clip: text; background-clip: text;
+    color: transparent; /* Make text transparent to show gradient */
     padding-bottom: 10px;
     margin: 0 0 25px 0;
     text-align: center;
     font-weight: 700;
     font-size: 2.2em;
-    width: 100%;
-    box-sizing: border-box;
-    position: relative;
+    position: relative; /* For the ::after pseudo-element */
 }
-
+/* Gradient underline for H1 */
 h1::after {
     content: '';
     position: absolute;
     left: 0;
-    bottom: -10px;
+    bottom: -10px; /* Position below the text */
     width: 100%;
     height: 4px;
     background: var(--brand-gradient);
@@ -268,17 +254,17 @@ h1::after {
     font-weight: 400;
 }
 
+/* Stats Grid */
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); /* Responsive columns */
     gap: 25px;
     margin-bottom: 45px;
 }
 
 .stat-item {
-    background-color: rgba(26, 26, 29, 0.65);
-    -webkit-backdrop-filter: blur(8px);
-    backdrop-filter: blur(8px);
+    background-color: rgba(26, 26, 29, 0.65); /* Inner card background */
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
     padding: 25px 20px;
     border-radius: 8px;
     border: 1px solid rgba(58, 58, 64, 0.4);
@@ -289,13 +275,11 @@ h1::after {
     text-align: center;
     transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-base), background-color var(--transition-base);
 }
-
 .stat-item:hover {
-    transform: translateY(-4px);
+    transform: translateY(-4px); /* Subtle lift on hover */
     box-shadow: 0 6px 15px rgba(0, 0, 0, 0.35);
 }
-
-.stat-item.error {
+.stat-item.error { /* Style for error state */
     border-color: var(--error-color);
     background-color: rgba(244, 67, 54, 0.1);
 }
@@ -310,60 +294,53 @@ h1::after {
     justify-content: center;
     gap: 10px;
 }
-
-.stat-item h2 i {
-    background: var(--brand-gradient);
-    -webkit-background-clip: text;
-    background-clip: text;
+.stat-item h2 i { /* Icon styling */
+    background: var(--brand-gradient); /* Gradient for icons */
+    -webkit-background-clip: text; background-clip: text;
     color: transparent;
     font-size: 1.3em;
-    width: 1.4em;
+    width: 1.4em; /* Ensure consistent width */
     text-align: center;
     flex-shrink: 0;
     line-height: 1;
 }
 
-.stat-item .value {
+.stat-item .value { /* Stat value text */
     font-size: 2.6em;
     font-weight: 700;
     line-height: 1.1;
-    margin-top: auto;
+    margin-top: auto; /* Push to bottom */
     padding-top: 10px;
     color: var(--text-color);
-    min-height: 1.1em;
+    min-height: 1.1em; /* Prevent layout shift during loading */
 }
-
+/* Effect for updated values */
 .value span {
     transition: opacity var(--transition-fast), transform var(--transition-fast);
     display: inline-block;
     will-change: opacity, transform;
 }
-
 .value span.updated {
     opacity: 0.7;
     transform: scale(1.08);
 }
 
+/* Loading Skeleton Animation */
 @keyframes skeleton-loading {
     0% { background-position: -200px 0; }
     100% { background-position: calc(200px + 100%) 0; }
 }
-
-.loading {
+.loading { /* Class for elements in loading state */
     position: relative;
     overflow: hidden;
-    color: transparent !important;
+    color: transparent !important; /* Hide text */
     user-select: none;
     cursor: default;
 }
-
-.loading::before {
+.loading::before { /* The animated skeleton bar */
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    top: 0; left: 0; right: 0; bottom: 0;
     border-radius: 4px;
     background-color: var(--border-color);
     background-image: linear-gradient(90deg, var(--border-color), #4a4a50, var(--border-color));
@@ -371,17 +348,18 @@ h1::after {
     background-repeat: no-repeat;
     animation: skeleton-loading 1.5s infinite linear;
 }
-
+/* Specific loading size for stat values */
 .value span.loading {
     display: inline-block;
-    width: 90px;
-    height: 1.1em;
+    width: 90px; /* Approximate width */
+    height: 1.1em; /* Match text height */
     vertical-align: middle;
-    font-size: 1em;
+    font-size: 1em; /* Relative to parent (.value) */
 }
 
+/* Regional Stats Section */
 .region-stats {
-    background-color: var(--bg-color);
+    background-color: var(--bg-color); /* Darker inner background */
     padding: 20px 25px;
     border-radius: 8px;
     border: 1px solid var(--border-color);
@@ -409,187 +387,392 @@ h1::after {
      font-size: 1em;
 }
 
-#region-distribution-list {
+#region-distribution-list { /* List of regions */
     list-style: none;
     padding: 0;
     margin: 0;
     font-size: 0.95em;
     color: var(--text-color);
-    max-height: 200px;
-    overflow-y: auto;
+    max-height: 200px; /* Limit height */
+    overflow-y: auto; /* Enable scroll */
+    /* Custom Scrollbar */
     scrollbar-width: thin;
     scrollbar-color: var(--border-color) var(--bg-color);
 }
-
 #region-distribution-list::-webkit-scrollbar { width: 8px; }
 #region-distribution-list::-webkit-scrollbar-track { background: var(--bg-color); border-radius: 4px; }
 #region-distribution-list::-webkit-scrollbar-thumb { background-color: var(--border-color); border-radius: 4px; border: 2px solid var(--bg-color); }
 
-
-#region-distribution-list li { padding: 8px 5px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+#region-distribution-list li {
+    padding: 8px 5px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
 #region-distribution-list li:last-child { border-bottom: none; }
 #region-distribution-list li strong { color: var(--text-muted-color); font-weight: 500; margin-right: 10px; }
-#region-distribution-list.loading li, #region-distribution-list.error li { color: var(--text-muted-color); font-style: italic; justify-content: center; border-bottom: none; }
+/* Loading/Error state for region list */
+#region-distribution-list.loading li,
+#region-distribution-list.error li {
+    color: var(--text-muted-color);
+    font-style: italic;
+    justify-content: center;
+    border-bottom: none;
+}
 
-.json-view { margin-top: 40px; }
-.json-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color); flex-wrap: wrap; gap: 10px; }
-.json-header h2 { color: var(--text-muted-color); font-weight: 500; font-size: 1.2em; margin: 0; display: flex; align-items: center; gap: 8px; border: none; padding: 0; }
-.json-header h2 i { color: var(--text-muted-color); font-size: 1em; }
-.json-controls { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; align-items: center; }
+/* Live Feed Section (Added) */
+.live-feed-section {
+    background-color: var(--bg-color); /* Match region stats background */
+    padding: 20px 25px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    margin-top: 40px; /* Space above */
+    margin-bottom: 40px; /* Space below */
+}
 
-.control-btn { background-color: var(--highlight-bg); color: var(--text-color); border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 0.9em; font-weight: 500; transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast); display: flex; align-items: center; gap: 5px; }
-.control-btn:hover:not(:disabled):not(.active) { background-color: var(--border-color); border-color: #555; }
+.live-feed-section h2 {
+    color: var(--text-muted-color);
+    font-weight: 500;
+    font-size: 1.2em;
+    margin: 0 0 15px 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.live-feed-section h2 i {
+     color: var(--text-muted-color);
+     font-size: 1em;
+}
+
+#fling-feed { /* The list holding fling events */
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 300px; /* Limit height and make scrollable */
+    overflow-y: auto;
+    /* Custom Scrollbar */
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) var(--bg-color);
+}
+#fling-feed::-webkit-scrollbar { width: 8px; }
+#fling-feed::-webkit-scrollbar-track { background: var(--bg-color); border-radius: 4px; }
+#fling-feed::-webkit-scrollbar-thumb { background-color: var(--border-color); border-radius: 4px; border: 2px solid var(--bg-color); }
+
+#fling-feed li { /* Individual fling event item */
+    padding: 10px 5px;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.9em;
+    color: var(--text-color);
+    display: flex; /* Use flexbox for alignment */
+    justify-content: space-between; /* Space out elements */
+    align-items: center;
+    flex-wrap: wrap; /* Allow wrapping on small screens */
+    gap: 5px 15px; /* Row and column gap */
+    opacity: 0; /* Start hidden for fade-in */
+    animation: fadeIn 0.5s ease forwards; /* Fade-in animation */
+}
+#fling-feed li:last-child { border-bottom: none; }
+
+/* Style for the initial "Waiting..." message */
+#fling-feed li.empty-feed-message {
+    color: var(--text-muted-color);
+    font-style: italic;
+    text-align: center;
+    justify-content: center; /* Center the text */
+    border-bottom: none;
+    opacity: 1; /* Make it visible immediately */
+    animation: none; /* No fade-in */
+}
+
+/* Styles for elements within a fling item */
+#fling-feed li .fling-time {
+    color: var(--text-muted-color);
+    font-size: 0.85em;
+    flex-shrink: 0; /* Don't allow time to shrink */
+}
+#fling-feed li .fling-details {
+   flex-grow: 1; /* Allow details text to take remaining space */
+   text-align: left;
+}
+/* Highlight bot and target names */
+#fling-feed li .fling-bot,
+#fling-feed li .fling-target {
+    font-weight: 600;
+}
+#fling-feed li .fling-bot { color: #aecaf0; /* Light blueish */ }
+#fling-feed li .fling-target { color: #f0aeae; /* Light reddish */ }
+
+/* Fade-in animation for new feed items */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+/* End Live Feed Section Styles */
+
+/* JSON View Section */
+.json-view { margin-top: 40px; } /* Space above JSON view */
+.json-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
+    flex-wrap: wrap; /* Allow controls to wrap */
+    gap: 10px;
+}
+.json-header h2 {
+    color: var(--text-muted-color);
+    font-weight: 500;
+    font-size: 1.2em;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: none; padding: 0; /* Override potential h2 defaults */
+}
+.json-header h2 i {
+    color: var(--text-muted-color); font-size: 1em;
+}
+.json-controls { /* Container for buttons/select */
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end; /* Align controls to the right */
+    align-items: center;
+}
+
+/* General Control Button Style */
+.control-btn {
+    background-color: var(--highlight-bg);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    padding: 6px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9em;
+    font-weight: 500;
+    transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+    display: inline-flex; /* Align icon and text */
+    align-items: center;
+    gap: 5px;
+    text-decoration: none; /* Remove underline if used on <a> */
+    white-space: nowrap; /* Prevent wrapping */
+}
+.control-btn:hover:not(:disabled):not(.active) {
+    background-color: var(--border-color);
+    border-color: #555;
+}
 .control-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-.sort-btn.active { background-color: #4a4a50; border-color: #666; color: #fff; cursor: default; }
+/* Style for active sort button */
+.sort-btn.active {
+    background-color: #4a4a50;
+    border-color: #666;
+    color: #fff;
+    cursor: default;
+}
 
+/* Theme Selector Dropdown */
 #theme-selector {
-    padding: 6px 8px;
-    height: 33px;
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
+    padding: 6px 8px; /* Adjust padding */
+    height: 33px; /* Match button height */
+    appearance: none; -webkit-appearance: none; -moz-appearance: none;
+    /* Custom dropdown arrow */
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23a0a0a0' height='24' viewBox='0 0 24 24' width='24'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 8px center;
     background-size: 1.1em;
-    padding-right: 30px;
+    padding-right: 30px; /* Space for arrow */
     cursor: pointer;
+    /* Match button styles */
+    background-color: var(--highlight-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    border-radius: 5px;
+    font-size: 0.9em;
+    font-weight: 500;
+    font-family: inherit; /* Use main font */
 }
-
-#theme-selector option {
+#theme-selector:hover {
+     background-color: var(--border-color); border-color: #555;
+}
+#theme-selector option { /* Dropdown options */
     background-color: var(--bg-color);
     color: var(--text-color);
 }
 
-/* Removed gradient styles from json-controls */
+/* JSON Code Block */
+pre#json-pre-container {
+    padding: 0; /* Padding applied to inner container */
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    max-height: 450px; /* Limit height */
+    overflow: auto; /* Enable scroll */
+    margin: 0;
+    background-color: transparent; /* Background applied to inner entries */
+    transition: display 0s ease 0.3s; /* Delay hide transition */
+}
+/* Hidden state for JSON block */
+pre#json-pre-container.hidden {
+    display: none; transition: none;
+}
+/* Inner container for JSON entries */
+#reservations-container {
+    padding: 10px;
+    font-family: var(--code-font-family);
+    font-size: 0.9em;
+    line-height: 1.5;
+}
+/* Loading state for JSON */
+#reservations-container.loading {
+    position: static; /* Override absolute positioning if any */
+    color: var(--text-muted-color) !important;
+    padding: 20px; min-height: 100px; /* Ensure minimum height */
+    display: flex; align-items: center; justify-content: center;
+    font-style: italic; background-color: transparent;
+}
+#reservations-container.loading::before { display: none; } /* Hide skeleton bar */
+/* Empty state for JSON */
+#reservations-container.empty {
+    color: var(--text-muted-color);
+    padding: 20px; min-height: 100px;
+    display: flex; align-items: center; justify-content: center;
+    font-style: italic;
+}
 
-pre#json-pre-container { padding: 0; border-radius: 8px; border: 1px solid var(--border-color); max-height: 450px; overflow: auto; margin: 0; background-color: transparent; transition: display 0s ease 0.3s; }
-pre#json-pre-container.hidden { display: none; transition: none; }
-#reservations-container { padding: 10px; font-family: var(--code-font-family); font-size: 0.9em; line-height: 1.5; }
-#reservations-container.loading { position: static; color: var(--text-muted-color) !important; padding: 20px; min-height: 100px; display: flex; align-items: center; justify-content: center; font-style: italic; background-color: transparent; }
-#reservations-container.loading::before { display: none; }
-#reservations-container.empty { color: var(--text-muted-color); padding: 20px; min-height: 100px; display: flex; align-items: center; justify-content: center; font-style: italic; }
-
-.json-entry { background-color: var(--code-bg-color); border-radius: 6px; padding: 15px; margin-bottom: 15px; border: 1px solid var(--border-color); overflow-x: auto; }
+/* Individual JSON entry block */
+.json-entry {
+    background-color: var(--code-bg-color); /* Dark background for each entry */
+    border-radius: 6px;
+    padding: 15px;
+    margin-bottom: 15px;
+    border: 1px solid var(--border-color);
+    overflow-x: auto; /* Allow horizontal scroll if needed */
+}
 .json-entry:last-child { margin-bottom: 0; }
-.json-entry code { font-family: var(--code-font-family); white-space: pre; display: block; background: none; padding: 0; color: var(--code-text-color); overflow-x: visible; font-size: 1em; }
+.json-entry code { /* The actual code element */
+    font-family: var(--code-font-family);
+    white-space: pre; /* Preserve whitespace */
+    display: block;
+    background: none; padding: 0; /* Remove default code styles */
+    color: var(--code-text-color);
+    overflow-x: visible; /* Let parent handle scroll */
+    font-size: 1em; /* Inherit from parent */
+}
 
-.json-entry code .hljs-string { color: #98c379; }
-.json-entry code .hljs-number { color: #d19a66; }
-.json-entry code .hljs-literal { color: #56b6c2; }
-.json-entry code .hljs-attr { color: #e06c75; }
+/* Basic Highlight.js syntax colors (adjust based on chosen theme if needed) */
+.json-entry code .hljs-string { color: #98c379; } /* Green */
+.json-entry code .hljs-number { color: #d19a66; } /* Orange */
+.json-entry code .hljs-literal { color: #56b6c2; } /* Cyan (for true/false/null) */
+.json-entry code .hljs-attr { color: #e06c75; } /* Red (for keys/attributes) */
 
-.last-updated { text-align: center; font-size: 0.9em; color: var(--text-muted-color); margin-top: 35px; margin-bottom: 0; display: flex; align-items: center; justify-content: center; gap: 15px; }
-.last-updated span#last-updated-time { font-weight: 500; color: #ccc; }
-.live-indicator-wrap { display: flex; align-items: center; gap: 6px; font-weight: 500; color: var(--accent-color); }
-.live-indicator { width: 10px; height: 10px; background-color: var(--accent-color); border-radius: 50%; display: inline-block; position: relative; }
-.live-indicator.pulsing { animation: pulse 1.5s infinite cubic-bezier(0.66, 0, 0, 1); }
+/* Footer - Last Updated */
+.last-updated {
+    text-align: center;
+    font-size: 0.9em;
+    color: var(--text-muted-color);
+    margin-top: 35px;
+    margin-bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+}
+.last-updated span#last-updated-time {
+    font-weight: 500; color: #ccc;
+}
+.live-indicator-wrap { /* Wrapper for "Live" text and dot */
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 500;
+    color: var(--accent-color);
+}
+.live-indicator { /* The green dot */
+    width: 10px; height: 10px;
+    background-color: var(--accent-color);
+    border-radius: 50%;
+    display: inline-block;
+    position: relative;
+}
+.live-indicator.pulsing { /* Apply pulse animation when live */
+    animation: pulse 1.5s infinite cubic-bezier(0.66, 0, 0, 1);
+}
 
+/* --- Responsive Design --- */
+
+/* Tablet and Smaller Desktops */
 @media (max-width: 768px) {
-    .container { padding: 25px 30px; }
+    body {
+        /* Adjust padding-top dynamically based on top-bar height */
+        /* This is a rough estimate, may need JS or more complex CSS */
+        padding-top: 85px; /* Increased slightly for wrapped bar */
+        padding-left: 15px; padding-right: 15px;
+    }
+    .container {
+        padding: 25px 20px; /* Reduced padding slightly */
+        margin-top: 0; /* Remove extra margin below top bar */
+    }
     h1 { font-size: 2em; }
-    .stats-grid { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 20px; }
+    .stats-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 20px; }
     .stat-item .value { font-size: 2.2em; }
     pre#json-pre-container { max-height: 350px; }
     .region-stats { padding: 15px 20px; }
-    /* .json-controls { justify-content: flex-end; } No longer needed here */
+    .live-feed-section { padding: 15px 20px; } /* Adjust feed padding */
+    #fling-feed { max-height: 250px; } /* Reduce feed height */
 
-    /* --- Start Top Bar Layout for 768px and below --- */
-    body {
-        /* Adjust padding for the wrapped top bar height */
-        /* Estimate: 2 rows ~ 30-35px each + padding */
-        padding-top: 80px; /* Fine-tune this value */
-    }
-
+    /* Top Bar Layout for 768px and below */
     .top-bar {
         flex-wrap: wrap; /* Allow wrapping */
         height: auto; /* Allow height to adjust */
-        padding: 8px 15px; /* Adjust padding */
-        justify-content: space-between; /* Keep main sections apart */
+        padding: 6px 15px; /* Reduced padding */
+        justify-content: space-between;
     }
-
-    .top-status {
-        flex: 0 1 auto;
-        order: 1; /* First item */
-        margin-bottom: 0;
-        padding-right: 10px;
-    }
-
-    .top-auth-controls {
-        flex: 0 1 auto;
-        order: 2; /* Second item */
-        justify-content: flex-end;
-        margin-bottom: 0;
-    }
-
+    .top-status { order: 1; padding-right: 10px; font-size: 0.9em; }
+    .top-auth-controls { order: 2; justify-content: flex-end; }
+    .placeholder-btn { font-size: 0.8em; padding: 4px 8px;} /* Smaller button */
     .top-gradient-controls {
-        flex-basis: 100%; /* Full width, force wrap */
-        order: 3; /* Third item (last) */
-        justify-content: center; /* Center the controls */
-        margin-top: 8px; /* Space above */
-        gap: 8px; /* Reduce gap between presets and custom */
+        flex-basis: 100%; order: 3; /* Force wrap */
+        justify-content: center; margin-top: 6px; gap: 8px;
     }
-    /* --- End Top Bar Layout for 768px and below --- */
-
-    /* Keep swatch/picker size adjustments for this breakpoint if desired */
-    .gradient-swatch { width: 19px; height: 19px; }
-    input.gradient-color-picker { width: 19px; height: 19px; }
+    /* Smaller swatches/pickers */
+    .gradient-swatch, input.gradient-color-picker { width: 19px; height: 19px; }
+    .gradient-separator { font-size: 1.1em; }
 }
 
+/* Mobile Phones */
 @media (max-width: 600px) {
-    body {
-        /* Estimate height: ~30px for first row + ~30px for second row + padding */
-        padding-top: 75px; /* Adjust this based on testing */
+     body {
+        padding-top: 75px; /* Adjust based on actual wrapped height */
+        padding-left: 10px; padding-right: 10px; padding-bottom: 20px;
     }
     .container { padding: 20px 15px; }
     h1 { font-size: 1.8em; }
     .subtitle { font-size: 1em; margin-bottom: 30px; }
-    .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 15px; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 15px; } /* Force 2 columns */
     .stat-item { min-height: auto; padding: 20px 15px; }
     .stat-item .value { font-size: 2em; }
-    .json-header { align-items: flex-start; flex-direction: column; }
+    .json-header { align-items: flex-start; flex-direction: column; } /* Stack header elements */
     .json-controls { width: 100%; justify-content: flex-start; margin-top: 10px; }
-    pre#json-pre-container { padding: 10px; }
-     #reservations-container { padding: 0; font-size: 0.85em; }
-     .json-entry { padding: 10px; margin-bottom: 10px; }
+    #theme-selector { flex-grow: 1; } /* Allow theme selector to take more space */
+    pre#json-pre-container { padding: 10px; max-height: 300px; }
+    #reservations-container { padding: 0; font-size: 0.85em; }
+    .json-entry { padding: 10px; margin-bottom: 10px; }
     .last-updated { flex-direction: column; gap: 5px; }
-     .region-stats { padding: 15px; margin-bottom: 30px; }
-     #region-distribution-list { font-size: 0.9em; }
+    .region-stats { padding: 15px; margin-bottom: 30px; }
+    #region-distribution-list { font-size: 0.9em; }
+    .live-feed-section { padding: 15px; margin-bottom: 30px; } /* Adjust feed padding */
+    #fling-feed { max-height: 200px; } /* Reduce feed height */
+    #fling-feed li { font-size: 0.85em; }
+    #fling-feed li .fling-time { width: 100%; text-align: right; font-size: 0.8em; } /* Time on new line */
 
-    /* --- Top Bar Mobile Fixes --- */
-    .top-bar {
-        font-size: 0.85em;
-        flex-wrap: wrap; /* Allow wrapping */
-        height: auto; /* Allow height to adjust */
-        padding: 8px 10px; /* Adjust padding */
-        justify-content: space-between; /* Keep main sections apart */
-    }
-
-    .top-status {
-        /* Take up available space on the left, but don't grow excessively */
-        flex: 0 1 auto;
-        order: 1; /* First item */
-        margin-bottom: 0; /* Remove bottom margin */
-        padding-right: 10px; /* Add some space to its right */
-    }
-
-    .top-auth-controls {
-         /* Take up available space on the right, don't grow */
-        flex: 0 1 auto;
-        order: 2; /* Second item */
-        justify-content: flex-end; /* Align button to the right */
-        margin-bottom: 0; /* Remove bottom margin */
-    }
-
-    .top-gradient-controls {
-        /* Force onto a new line, take full width */
-        flex-basis: 100%;
-        order: 3; /* Third item (last) */
-        justify-content: center; /* Center the controls */
-        margin-top: 8px; /* Add space above */
-        gap: 8px; /* Adjust gap if needed */
-    }
-
-    .gradient-swatch { width: 18px; height: 18px; }
-    input.gradient-color-picker { width: 18px; height: 18px; }
+    /* Top Bar adjustments - Inherits layout from 768px */
+    .top-bar { font-size: 0.85em; padding: 5px 10px; }
+    .top-gradient-controls { margin-top: 5px; gap: 6px; }
+    /* Smallest swatches/pickers */
+    .gradient-swatch, input.gradient-color-picker { width: 18px; height: 18px; }
+    .gradient-separator { display: none; } /* Hide separator on smallest screens */
 }
