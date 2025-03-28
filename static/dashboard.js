@@ -1,4 +1,3 @@
-// --- DOM Element Selectors ---
 const botCountEl = document.getElementById('bot-count');
 const serverCountEl = document.getElementById('server-count');
 const totalFlingsEl = document.getElementById('total-flings');
@@ -10,7 +9,7 @@ const toggleJsonBtn = document.getElementById('toggle-json');
 const jsonPreContainer = document.getElementById('json-pre-container');
 const copyJsonBtn = document.getElementById('copy-json');
 const liveIndicator = document.querySelector('.live-indicator');
-const statItems = { // Containers for error class toggling
+const statItems = {
     bots: document.getElementById('stat-bots'),
     servers: document.getElementById('stat-servers'),
     flings: document.getElementById('stat-flings'),
@@ -20,78 +19,72 @@ const regionContainer = document.getElementById('region-stats-container');
 const sortButtons = document.querySelectorAll('.sort-btn');
 const themeSelectorEl = document.getElementById('theme-selector');
 const themeLinkEl = document.getElementById('hljs-theme-link');
+const gradientSelectorContainerEl = document.getElementById('gradient-selector-container');
 
-// --- Constants and State Variables ---
-const UPDATE_INTERVAL = 1500; // ms
+const UPDATE_INTERVAL = 1500;
 const HLJS_CDN_BASE = "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/";
 const LOCALSTORAGE_THEME_KEY = 'tcdDashboardTheme';
+const PREDEFINED_GRADIENTS = [
+    { id: 'brand', value: 'linear-gradient(90deg, rgb(238, 68, 182) 0%, rgb(237, 147, 68) 100%)', name: 'Brand Default' },
+    { id: 'ocean', value: 'linear-gradient(90deg, #1CB5E0 0%, #000046 100%)', name: 'Ocean Blue' },
+    { id: 'sunset', value: 'linear-gradient(90deg, #FF512F 0%, #DD2476 100%)', name: 'Sunset Red' },
+    { id: 'forest', value: 'linear-gradient(90deg, #138808 0%, #2B5F2B 100%)', name: 'Forest Green' },
+    { id: 'purple', value: 'linear-gradient(90deg, #DA22FF 0%, #9733EE 100%)', name: 'Deep Purple' }
+];
+const DEFAULT_GRADIENT_ID = 'brand';
+const LOCALSTORAGE_GRADIENT_KEY = 'tcdDashboardGradientId';
 
-let currentSortKey = 'timestamp'; // Default sort order
+let currentSortKey = 'timestamp';
 let initialLoadComplete = false;
-let previousReservationsData = null; // Stores last valid UNSORTED reservation data
-let updateScheduled = false; // Flag for requestAnimationFrame
-
-// --- Core Data Fetching and Processing ---
+let previousReservationsData = null;
+let updateScheduled = false;
 
 async function updateData() {
     try {
-        // Fetch stats and reservations concurrently
         const [statsResponse, reservationsResponse] = await Promise.all([
             fetch('/'),
             fetch('/reservations')
         ]);
 
-        // Check if fetch responses are ok
         if (!statsResponse.ok) throw new Error(`Stats fetch failed: ${statsResponse.status} ${statsResponse.statusText}`);
         if (!reservationsResponse.ok) throw new Error(`Reservations fetch failed: ${reservationsResponse.status} ${reservationsResponse.statusText}`);
 
-        // Parse JSON responses
         const statsData = await statsResponse.json();
         const reservationsData = await reservationsResponse.json();
 
-        // Process and display the valid data
         processUpdate(statsData, reservationsData);
 
-        // Clear any previous error state AFTER successful processing
         setErrorState(null);
         initialLoadComplete = true;
 
     } catch (error) {
-        // Handle errors during fetch or JSON parsing
         console.error("Error fetching or processing data:", error);
         setErrorState(error.message || "Unknown error");
-        initialLoadComplete = true; // Mark load as complete even on error to prevent infinite loading state
+        initialLoadComplete = true;
     }
 }
 
 function processUpdate(stats, reservations) {
-    // Update main stat cards
     applyUpdateEffect(botCountEl, stats?.botCount);
     applyUpdateEffect(serverCountEl, stats?.serverCount);
     applyUpdateEffect(totalFlingsEl, stats?.totalFlings);
     const rate = stats?.flingRatePerMinute;
     applyUpdateEffect(flingRateEl, typeof rate === 'number' ? rate.toFixed(1) : '?');
 
-    // Update footer timestamp and live indicator
     if (lastUpdatedEl) lastUpdatedEl.textContent = new Date().toLocaleTimeString();
     if (liveIndicator && !liveIndicator.classList.contains('pulsing')) {
         liveIndicator.classList.add('pulsing');
     }
 
-    // Update regional distribution list
     updateRegionDistribution(stats?.botsPerRegion);
 
-    // Compare fetched reservations with previous data to see if update is needed
     const currentDataString = JSON.stringify(reservations);
     const previousDataString = JSON.stringify(previousReservationsData);
 
-    // Update JSON view if data changed or it's the first successful load
     if (currentDataString !== previousDataString || !initialLoadComplete) {
-        previousReservationsData = reservations; // Store the new UNSORTED data
-        scheduleJsonUpdate(reservations); // Schedule render (will sort inside)
+        previousReservationsData = reservations;
+        scheduleJsonUpdate(reservations);
     } else {
-        // If data is the same, just ensure loading/empty states are correct
-        // (e.g., if previous state was loading/error)
         if (reservationsContainerEl && reservationsContainerEl.classList.contains('loading')) {
             reservationsContainerEl.classList.remove('loading');
             if (!previousReservationsData || (Array.isArray(previousReservationsData) && previousReservationsData.length === 0)) {
@@ -104,34 +97,28 @@ function processUpdate(stats, reservations) {
     }
 }
 
-// --- UI Update Functions ---
 
 function updateRegionDistribution(regionData) {
     if (!regionListEl) return;
 
-    // Clear previous state
     regionListEl.classList.remove('loading', 'error');
     regionListEl.innerHTML = '';
-    if (regionContainer) regionContainer.classList.remove('error'); // Clear container error
+    if (regionContainer) regionContainer.classList.remove('error');
 
-    // Validate data
     if (!regionData || typeof regionData !== 'object') {
-        regionListEl.classList.add('error'); // Add error class to list itself
+        regionListEl.classList.add('error');
         regionListEl.innerHTML = '<li>Error loading regional data</li>';
-        if (regionContainer) regionContainer.classList.add('error'); // Add error class to container
+        if (regionContainer) regionContainer.classList.add('error');
         return;
     }
 
-    // Get and sort regions
     const regions = Object.keys(regionData).sort();
 
-    // Display message if no regions
     if (regions.length === 0) {
         regionListEl.innerHTML = '<li>No bots active in any specific region.</li>';
         return;
     }
 
-    // Populate list
     regions.forEach(region => {
         const count = regionData[region];
         const li = document.createElement('li');
@@ -141,14 +128,12 @@ function updateRegionDistribution(regionData) {
 }
 
 function scheduleJsonUpdate(reservationsData) {
-    // Prevents multiple updates queuing up
     if (updateScheduled || !reservationsContainerEl) return;
     updateScheduled = true;
 
-    // Sort the data before rendering
     let sortedData = [];
     if (Array.isArray(reservationsData)) {
-        sortedData = [...reservationsData]; // Create a copy
+        sortedData = [...reservationsData];
         const sortFunctions = {
             timestamp: (a, b) => (b.timestamp || 0) - (a.timestamp || 0),
             players: (a, b) => (b.currentPlayerCount ?? -1) - (a.currentPlayerCount ?? -1),
@@ -159,20 +144,18 @@ function scheduleJsonUpdate(reservationsData) {
             sortedData.sort(sortFunctions[currentSortKey]);
         } else {
             console.warn("Unknown sort key:", currentSortKey);
-            sortedData.sort(sortFunctions.timestamp); // Fallback
+            sortedData.sort(sortFunctions.timestamp);
         }
     } else {
         console.warn("Reservations data is not an array:", reservationsData);
-        sortedData = reservationsData; // Attempt to render what was given
+        sortedData = reservationsData;
     }
 
-    // Use requestAnimationFrame for smoother DOM updates
     requestAnimationFrame(() => {
         try {
             let finalHtml = '';
             let isEmpty = true;
 
-            // Generate HTML based on sortedData
             if (sortedData === null || sortedData === undefined) {
                 finalHtml = 'No reservation data received.';
                 reservationsContainerEl.classList.add('loading');
@@ -187,28 +170,28 @@ function scheduleJsonUpdate(reservationsData) {
                     sortedData.forEach(item => {
                         const itemString = JSON.stringify(item, null, 2);
                         let highlightedCode = itemString;
-                        // Apply syntax highlighting if hljs is available
                         if (typeof hljs !== 'undefined' && hljs.highlight) {
                             try {
                                 highlightedCode = hljs.highlight(itemString, { language: 'json' }).value;
                             } catch (highlightError) {
                                 console.error("Highlighting error for item:", item, highlightError);
-                                highlightedCode = itemString.replace(/</g, "<").replace(/>/g, ">"); // Basic escaping
+                                highlightedCode = itemString.replace(/</g, "<").replace(/>/g, ">");
                             }
                         } else {
-                             highlightedCode = itemString.replace(/</g, "<").replace(/>/g, ">"); // Basic escaping
+                             highlightedCode = itemString.replace(/</g, "<").replace(/>/g, ">");
                         }
                         finalHtml += `<div class="json-entry"><code class="language-json">${highlightedCode}</code></div>`;
                     });
                     reservationsContainerEl.classList.remove('loading');
                 }
             } else if (typeof sortedData === 'object' && Object.keys(sortedData).length > 0) {
-                // Handle potential single object return
                 console.warn("Rendering single object for reservations:", sortedData);
                 isEmpty = false;
                 const itemString = JSON.stringify(sortedData, null, 2);
                 let highlightedCode = itemString;
-                 if (typeof hljs !== 'undefined' && hljs.highlight) { /* ... highlight ... */ }
+                 if (typeof hljs !== 'undefined' && hljs.highlight) {
+                    try { highlightedCode = hljs.highlight(itemString, { language: 'json' }).value; } catch(e) {}
+                 }
                 finalHtml = `<div class="json-entry"><code class="language-json">${highlightedCode}</code></div>`;
                 reservationsContainerEl.classList.remove('loading');
             } else if (typeof sortedData === 'object' && Object.keys(sortedData).length === 0) {
@@ -216,14 +199,12 @@ function scheduleJsonUpdate(reservationsData) {
                  isEmpty = true;
                  reservationsContainerEl.classList.remove('loading');
             } else {
-                // Handle unexpected formats
                 finalHtml = `Received unexpected data format.`;
                 isEmpty = true;
                 reservationsContainerEl.classList.add('loading');
                 console.error("Unexpected data format received:", sortedData);
             }
 
-            // Update the container's HTML
             reservationsContainerEl.innerHTML = finalHtml;
 
             if (isEmpty && !reservationsContainerEl.classList.contains('loading')) {
@@ -307,9 +288,6 @@ function setErrorState(errorMessage) {
     });
     if (regionContainer) regionContainer.classList.toggle('error', isError);
 
-    // const jsonViewContainer = document.querySelector('.json-view');
-    // if(jsonViewContainer) jsonViewContainer.classList.toggle('error', isError);
-
     if (isError) {
         applyUpdateEffect(botCountEl, 'Error');
         applyUpdateEffect(serverCountEl, 'Error');
@@ -358,10 +336,86 @@ function applyTheme(themeValue) {
 }
 
 function loadThemePreference() {
-    const savedTheme = localStorage.getItem(LOCALSTORAGE_THEME_KEY);
+    let savedTheme = null;
+    try {
+        savedTheme = localStorage.getItem(LOCALSTORAGE_THEME_KEY);
+    } catch(e) { console.warn("Could not access localStorage:", e.message); }
     const initialTheme = savedTheme || 'atom-one-dark';
     applyTheme(initialTheme);
 }
+
+function findGradientById(id) {
+    return PREDEFINED_GRADIENTS.find(g => g.id === id);
+}
+
+function applyGradient(gradientId) {
+    const gradient = findGradientById(gradientId) || findGradientById(DEFAULT_GRADIENT_ID);
+
+    if (!gradient) {
+        console.error("Could not find default gradient. Check PREDEFINED_GRADIENTS.");
+        return;
+    }
+
+    console.log("Applying gradient:", gradient.name);
+    document.documentElement.style.setProperty('--brand-gradient', gradient.value);
+
+    const swatches = gradientSelectorContainerEl.querySelectorAll('.gradient-swatch');
+    swatches.forEach(swatch => {
+        if (swatch.dataset.gradientId === gradient.id) {
+            swatch.classList.add('active');
+            swatch.setAttribute('aria-pressed', 'true');
+        } else {
+            swatch.classList.remove('active');
+            swatch.setAttribute('aria-pressed', 'false');
+        }
+    });
+}
+
+function loadGradientPreference() {
+    let savedGradientId = null;
+    try {
+      savedGradientId = localStorage.getItem(LOCALSTORAGE_GRADIENT_KEY);
+    } catch (e) {
+      console.warn("Could not access localStorage:", e.message);
+    }
+    const initialGradientId = savedGradientId && findGradientById(savedGradientId) ? savedGradientId : DEFAULT_GRADIENT_ID;
+    applyGradient(initialGradientId);
+}
+
+function setupGradientSelector() {
+    if (!gradientSelectorContainerEl) return;
+
+    PREDEFINED_GRADIENTS.forEach(gradient => {
+        const swatch = document.createElement('div');
+        swatch.classList.add('gradient-swatch');
+        swatch.dataset.gradientId = gradient.id;
+        swatch.style.backgroundImage = gradient.value;
+        swatch.title = gradient.name;
+        swatch.setAttribute('role', 'button');
+        swatch.setAttribute('aria-pressed', 'false');
+        swatch.setAttribute('tabindex', '0');
+
+        swatch.addEventListener('click', () => {
+            const selectedId = swatch.dataset.gradientId;
+            applyGradient(selectedId);
+            try {
+               localStorage.setItem(LOCALSTORAGE_GRADIENT_KEY, selectedId);
+            } catch (e) {
+               console.warn("Could not save gradient to localStorage:", e.message);
+            }
+        });
+
+        swatch.addEventListener('keydown', (event) => {
+             if (event.key === 'Enter' || event.key === ' ') {
+                 event.preventDefault();
+                 swatch.click();
+             }
+         });
+
+        gradientSelectorContainerEl.appendChild(swatch);
+    });
+}
+
 
 toggleJsonBtn.addEventListener('click', () => {
     if (jsonPreContainer) {
@@ -450,7 +504,10 @@ sortButtons.forEach(button => {
 themeSelectorEl.addEventListener('change', () => {
     const selectedTheme = themeSelectorEl.value;
     applyTheme(selectedTheme);
-    localStorage.setItem(LOCALSTORAGE_THEME_KEY, selectedTheme);
+    try {
+        localStorage.setItem(LOCALSTORAGE_THEME_KEY, selectedTheme);
+    } catch(e) { console.warn("Could not save theme to localStorage:", e.message); }
+
 
     setTimeout(() => {
         if (previousReservationsData !== null && reservationsContainerEl) {
@@ -470,7 +527,9 @@ themeSelectorEl.addEventListener('change', () => {
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log("DOM fully loaded. Initializing.");
+    setupGradientSelector();
     loadThemePreference();
+    loadGradientPreference();
     setInitialLoadingState();
     updateData();
     setInterval(updateData, UPDATE_INTERVAL);
