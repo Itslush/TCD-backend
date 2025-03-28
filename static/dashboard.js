@@ -348,27 +348,8 @@ function applyTheme(themeValue) {
     const currentHref = themeLinkEl.getAttribute('href');
 
     if (currentHref !== newThemeUrl) {
-        console.log("Applying theme:", themeValue);
+        console.log("Applying theme CSS:", themeValue);
         themeLinkEl.setAttribute('href', newThemeUrl);
-
-        setTimeout(() => {
-            if (typeof hljs !== 'undefined' && hljs.highlightElement && reservationsContainerEl &&
-                !reservationsContainerEl.classList.contains('loading') &&
-                !reservationsContainerEl.classList.contains('empty'))
-            {
-                const codeBlocks = reservationsContainerEl.querySelectorAll('code.language-json');
-                if (codeBlocks.length > 0) {
-                    console.log(`Re-highlighting ${codeBlocks.length} code blocks for theme: ${themeValue}`);
-                    codeBlocks.forEach(block => {
-                        try {
-                            hljs.highlightElement(block);
-                        } catch(e) {
-                            console.error("Error re-highlighting block:", e, block);
-                        }
-                    });
-                }
-            }
-        }, 100);
     }
 
     if (themeSelectorEl.value !== themeValue) {
@@ -470,6 +451,21 @@ themeSelectorEl.addEventListener('change', () => {
     const selectedTheme = themeSelectorEl.value;
     applyTheme(selectedTheme);
     localStorage.setItem(LOCALSTORAGE_THEME_KEY, selectedTheme);
+
+    setTimeout(() => {
+        if (previousReservationsData !== null && reservationsContainerEl) {
+            console.log("Forcing JSON re-render for new theme:", selectedTheme);
+
+            reservationsContainerEl.innerHTML = '';
+            reservationsContainerEl.classList.add('loading');
+            reservationsContainerEl.classList.remove('empty');
+            reservationsContainerEl.textContent = 'Applying theme...';
+
+            scheduleJsonUpdate(previousReservationsData);
+        } else {
+             console.log("Theme changed, but no JSON data to re-render.");
+        }
+    }, 150);
 });
 
 document.addEventListener('DOMContentLoaded', () => {
