@@ -5,22 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Operation: TCD Dashboard</title>
 
-    <!-- Fonts and Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-
-    <!-- Highlight.js Theme -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css" id="hljs-theme-link">
-
-    <!-- Main Stylesheet -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-
 </head>
 <body>
-
-    <!-- Top Bar -->
     <div class="top-bar">
         <div class="top-status">
              <span class="top-live-indicator"></span> Status: Live
@@ -28,7 +20,6 @@
 
         <div class="top-gradient-controls">
              <div id="gradient-selector-container" title="Select Preset Brand Gradient">
-                <!-- Preset Swatches populated by JS -->
              </div>
              <span class="gradient-separator">|</span>
              <div class="gradient-picker-container" title="Select Custom Brand Gradient">
@@ -40,18 +31,14 @@
         </div>
 
         <div class="top-auth-controls">
-             <!-- Placeholder Login Button (Will be replaced later) -->
              <button class="control-btn placeholder-btn">Sign In</button>
-             <!-- Logged-in user info/logout button will go here when login is implemented -->
         </div>
     </div>
 
-    <!-- Main Content Container -->
     <div class="container">
         <h1>Operation TCD status:</h1>
         <p class="subtitle">Real-time statistics from all bots</p>
 
-        <!-- Stats Grid -->
         <div class="stats-grid">
             <div class="stat-item" id="stat-bots">
                 <h2 title="Number of unique bots currently associated with active server reservations.">
@@ -79,7 +66,6 @@
             </div>
         </div>
 
-        <!-- Regional Distribution -->
         <div class="region-stats" id="region-stats-container">
             <h2 class="region-stats-header"><i class="fas fa-map-marked-alt"></i> Regional Bot Distribution</h2>
             <ul id="region-distribution-list" class="loading">
@@ -87,33 +73,24 @@
             </ul>
         </div>
 
-        <!-- START: Live Fling Feed Section -->
         <div class="live-feed-section">
             <h2><i class="fas fa-wind"></i> Live Fling Feed</h2>
             <ul id="fling-feed">
-                <!-- Fling events will be added here by JS -->
+                
                 <li class="empty-feed-message">Waiting for fling reports...</li>
             </ul>
         </div>
-        <!-- END: Live Fling Feed Section -->
-
-        <!-- Placeholder for Chat Log Section (requires login later) -->
-        <!-- <div class="chat-log-section" style="display: none;"> -->
-            <!-- <h2><i class="fas fa-comments"></i> Bot Chat Logs</h2> -->
-            <!-- ... chat log UI elements ... -->
-        <!-- </div> -->
-
-        <!-- Live Server Reservations JSON View -->
+        
         <div class="json-view">
             <div class="json-header">
                 <h2><i class="fas fa-code"></i> Live Server Reservations</h2>
                 <div class="json-controls">
-                    <!-- Sorting Buttons -->
+                    
                     <button id="sort-time" class="control-btn sort-btn active" title="Sort by newest first"><i class="fas fa-clock"></i> Time</button>
                     <button id="sort-players" class="control-btn sort-btn" title="Sort by player count (highest first)"><i class="fas fa-users"></i> Players</button>
                     <button id="sort-region" class="control-btn sort-btn" title="Sort by region (A-Z)"><i class="fas fa-map"></i> Region</button>
                     <button id="sort-id" class="control-btn sort-btn" title="Sort by server ID (A-Z)"><i class="fas fa-tag"></i> ID</button>
-                    <!-- Theme Selector -->
+                    
                     <select id="theme-selector" class="control-btn" title="Select JSON Syntax Theme">
                         <option value="atom-one-dark">Atom One Dark</option>
                         <option value="github-dark">GitHub Dark</option>
@@ -123,7 +100,7 @@
                         <option value="base16/monokai">Monokai</option>
                         <option value="agate">Agate</option>
                     </select>
-                    <!-- JSON Actions -->
+                    
                     <button id="copy-json" class="control-btn copy-btn" title="Copy JSON to clipboard"><i class="far fa-copy"></i> Copy</button>
                     <button id="toggle-json" class="control-btn toggle-btn" aria-expanded="true" aria-controls="json-pre-container">Hide</button>
                 </div>
@@ -131,7 +108,6 @@
             <pre id="json-pre-container"><div id="reservations-container" class="loading">Loading reservation data...</div></pre>
         </div>
 
-        <!-- Footer - Last Updated -->
         <p class="last-updated">
             <span class="live-indicator-wrap">
                 <span class="live-indicator"></span> Live
@@ -140,14 +116,10 @@
         </p>
     </div>
 
-    <!-- JavaScript Libraries -->
-    <!-- Socket.IO Client Library (added) -->
     <script src="https://cdn.socket.io/4.7.4/socket.io.min.js" integrity="sha384-Gr6Lu2Ajx2UJw1EkQ28翌P4OPj7m2JCIMXNFMSfSutWx+MAKGUoQD+9RupcXO" crossorigin="anonymous"></script>
-    <!-- Highlight.js Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
-    <!-- Custom Dashboard Logic -->
+    
     <script src="{{ url_for('static', filename='dashboard.js') }}"></script>
-
 </body>
 </html>

@@ -1,6 +1,3 @@
-// static/dashboard.js
-
-// --- DOM Element Selectors ---
 const botCountEl = document.getElementById('bot-count');
 const serverCountEl = document.getElementById('server-count');
 const totalFlingsEl = document.getElementById('total-flings');
@@ -11,11 +8,10 @@ const lastUpdatedEl = document.getElementById('last-updated-time');
 const toggleJsonBtn = document.getElementById('toggle-json');
 const jsonPreContainer = document.getElementById('json-pre-container');
 const copyJsonBtn = document.getElementById('copy-json');
-const liveIndicator = document.querySelector('.live-indicator'); // Bottom indicator
-const topLiveIndicator = document.querySelector('.top-live-indicator'); // Top bar indicator
-const flingFeedList = document.getElementById('fling-feed'); // <-- ADDED: Live feed UL element
+const liveIndicator = document.querySelector('.live-indicator');
+const topLiveIndicator = document.querySelector('.top-live-indicator');
+const flingFeedList = document.getElementById('fling-feed');
 
-// Stat item containers (for error highlighting)
 const statItems = {
     bots: document.getElementById('stat-bots'),
     servers: document.getElementById('stat-servers'),
@@ -24,30 +20,24 @@ const statItems = {
 };
 const regionContainer = document.getElementById('region-stats-container');
 
-// Control elements
 const sortButtons = document.querySelectorAll('.sort-btn');
 const themeSelectorEl = document.getElementById('theme-selector');
-const themeLinkEl = document.getElementById('hljs-theme-link'); // Link tag for theme CSS
+const themeLinkEl = document.getElementById('hljs-theme-link');
 const gradientColorPicker1 = document.getElementById('gradient-color-1');
 const gradientColorPicker2 = document.getElementById('gradient-color-2');
-const gradientSelectorContainerEl = document.getElementById('gradient-selector-container'); // Preset container
+const gradientSelectorContainerEl = document.getElementById('gradient-selector-container');
 
-
-// --- Constants and State Variables ---
-const UPDATE_INTERVAL = 1500; // Interval for polling HTTP data (ms)
+const UPDATE_INTERVAL = 1500;
 const HLJS_CDN_BASE = "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/";
-const MAX_FEED_ITEMS = 50; // <-- ADDED: Max number of items to keep in the live feed
+const MAX_FEED_ITEMS = 50;
 
-// LocalStorage Keys
 const LOCALSTORAGE_THEME_KEY = 'tcdDashboardTheme';
 const LOCALSTORAGE_GRADIENT_COLOR_1 = 'tcdGradientColor1';
 const LOCALSTORAGE_GRADIENT_COLOR_2 = 'tcdGradientColor2';
 
-// Default Gradient Colors
 const DEFAULT_GRADIENT_COLOR_1 = '#ee44b6';
 const DEFAULT_GRADIENT_COLOR_2 = '#ed9344';
 
-// Predefined Gradient Presets (Using your updated names)
 const PREDEFINED_GRADIENTS = [
     { id: 'Jvnesh', color1: '#ee44b6', color2: '#ed9344', name: 'Jvensh' },
     { id: 'sunset', color1: '#FF512F', color2: '#DD2476', name: 'Sunset Red' },
@@ -55,14 +45,10 @@ const PREDEFINED_GRADIENTS = [
     { id: 'monotone', color1: '#d1d1d1', color2: '#787878', name: 'Corpo Neutral'}
 ];
 
-// State
-let currentSortKey = 'timestamp'; // Default sort for reservations
-let initialLoadComplete = false; // Tracks if first HTTP poll finished
-let previousReservationsData = null; // Stores last reservation data for comparison
-let updateScheduled = false; // Flag to prevent race conditions in JSON rendering
-
-
-// --- Core Data Fetching and Processing (HTTP Polling -UNCHANGED) ---
+let currentSortKey = 'timestamp';
+let initialLoadComplete = false;
+let previousReservationsData = null;
+let updateScheduled = false;
 
 async function updateData() {
     try {
@@ -124,9 +110,6 @@ function processUpdate(stats, reservations) {
         }
     }
 }
-
-
-// --- UI Update Functions (UNCHANGED except for setInitialLoadingState) ---
 
 function updateRegionDistribution(regionData) {
     if (!regionListEl) return;
@@ -214,19 +197,22 @@ function scheduleJsonUpdate(reservationsData) {
                     });
                     reservationsContainerEl.classList.remove('loading');
                 }
-             } else if (typeof sortedData === 'object' && Object.keys(sortedData).length > 0) { // Handle single object case if necessary
+             } else if (typeof sortedData === 'object' && Object.keys(sortedData).length > 0) {
                  console.warn("Rendering single object for reservations:", sortedData);
+
                  isEmpty = false;
+
                  const itemString = JSON.stringify(sortedData, null, 2);
                  let highlightedCode = itemString;
+
                  if (typeof hljs !== 'undefined' && hljs.highlight) { try { highlightedCode = hljs.highlight(itemString, { language: 'json' }).value; } catch(e){} }
                  finalHtml = `<div class="json-entry"><code class="language-json">${highlightedCode}</code></div>`;
                  reservationsContainerEl.classList.remove('loading');
-             } else if (typeof sortedData === 'object' && Object.keys(sortedData).length === 0) { // Handle empty object case
+             } else if (typeof sortedData === 'object' && Object.keys(sortedData).length === 0) {
                  finalHtml = 'No active reservations. (Empty object)';
                  isEmpty = true;
                  reservationsContainerEl.classList.remove('loading');
-            } else { // Handle other unexpected formats
+            } else {
                 finalHtml = `Received unexpected data format.`;
                 isEmpty = true;
                 reservationsContainerEl.classList.add('loading');
@@ -243,9 +229,9 @@ function scheduleJsonUpdate(reservationsData) {
         } catch (e) {
             console.error("Error during DOM update in scheduleJsonUpdate:", e);
             if (reservationsContainerEl) {
-                 reservationsContainerEl.innerHTML = `<div class="json-entry error">Error displaying JSON view: ${e.message}</div>`;
-                 reservationsContainerEl.classList.remove('loading', 'empty');
-                 reservationsContainerEl.classList.add('error');
+                reservationsContainerEl.innerHTML = `<div class="json-entry error">Error displaying JSON view: ${e.message}</div>`;
+                reservationsContainerEl.classList.remove('loading', 'empty');
+                reservationsContainerEl.classList.add('error');
             }
         } finally {
             updateScheduled = false;
@@ -279,7 +265,7 @@ function applyUpdateEffect(element, newValue) {
     }
 }
 
-function setInitialLoadingState() { // <-- MODIFIED
+function setInitialLoadingState() {
     const statElements = [botCountEl, serverCountEl, totalFlingsEl, flingRateEl];
     statElements.forEach(el => {
         if (el) {
@@ -289,11 +275,13 @@ function setInitialLoadingState() { // <-- MODIFIED
             if (container) container.classList.remove('error');
         }
     });
+
     if (reservationsContainerEl) {
         reservationsContainerEl.classList.add('loading');
         reservationsContainerEl.classList.remove('empty', 'error');
         reservationsContainerEl.textContent = 'Loading reservation data...';
     }
+
     if (regionListEl) {
          regionListEl.classList.add('loading');
          regionListEl.classList.remove('error');
@@ -303,13 +291,13 @@ function setInitialLoadingState() { // <-- MODIFIED
     if (liveIndicator) liveIndicator.classList.remove('pulsing');
     if (topLiveIndicator) topLiveIndicator.classList.remove('pulsing');
     if (lastUpdatedEl) lastUpdatedEl.textContent = 'Never';
-    // ADDED: Reset live feed on initial load
+
     if (flingFeedList) {
         flingFeedList.innerHTML = '<li class="empty-feed-message">Waiting for fling reports...</li>';
     }
 }
 
-function setErrorState(errorMessage) { // <-- MODIFIED
+function setErrorState(errorMessage) {
     const isError = errorMessage !== null;
 
     Object.values(statItems).forEach(itemContainer => {
@@ -339,12 +327,11 @@ function setErrorState(errorMessage) { // <-- MODIFIED
         if (liveIndicator) liveIndicator.classList.remove('pulsing');
         if (topLiveIndicator) topLiveIndicator.classList.remove('pulsing');
 
-        // ADDED: Show error in live feed
         if (flingFeedList) {
              addErrorToFeed(`Data update error: ${escapeHtml(errorMessage)}`);
         }
 
-    } else { // Clear error state
+    } else {
         if (lastUpdatedEl && (lastUpdatedEl.textContent === 'Update Failed' || lastUpdatedEl.textContent === 'Never')) {
             lastUpdatedEl.textContent = 'Updating...';
         }
@@ -354,10 +341,10 @@ function setErrorState(errorMessage) { // <-- MODIFIED
         if (topLiveIndicator && !topLiveIndicator.classList.contains('pulsing')) {
              topLiveIndicator.classList.add('pulsing');
         }
-         // ADDED: Clear potential previous feed errors on successful update
+
          const feedError = flingFeedList?.querySelector('.error-feed-message');
          if (feedError) feedError.remove();
-         // Restore waiting message if list is now empty
+
          if (flingFeedList && flingFeedList.children.length === 0) {
              flingFeedList.innerHTML = '<li class="empty-feed-message">Waiting for fling reports...</li>';
          }
@@ -365,7 +352,6 @@ function setErrorState(errorMessage) { // <-- MODIFIED
 }
 
 
-// --- Theme and Gradient Functions (UNCHANGED) ---
 
 function applyTheme(themeValue) {
     if (!themeLinkEl || !themeValue) return;
@@ -457,7 +443,7 @@ function handleGradientChange() {
 
 function setupGradientSelector() {
     if (!gradientSelectorContainerEl) return;
-    gradientSelectorContainerEl.innerHTML = ''; // Clear first
+    gradientSelectorContainerEl.innerHTML = '';
 
     PREDEFINED_GRADIENTS.forEach(gradient => {
         const swatch = document.createElement('div');
@@ -481,19 +467,16 @@ function setupGradientSelector() {
 
         swatch.addEventListener('keydown', (event) => {
              if (event.key === 'Enter' || event.key === ' ') {
-                 event.preventDefault();
-                 swatch.click();
-             }
+                event.preventDefault();
+                swatch.click();
+            }
          });
 
         gradientSelectorContainerEl.appendChild(swatch);
     });
 }
 
-// --- Socket.IO Setup and Event Handling (ADDED) ---
-
 function setupSocketIO() {
-    // Check if socket.io is loaded
     if (typeof io === 'undefined') {
         console.error("Socket.IO client library not loaded. Live feed disabled.");
         addErrorToFeed("Live feed library failed to load.");
@@ -501,18 +484,17 @@ function setupSocketIO() {
     }
 
     try {
-        // Connect to the Socket.IO server
         const socket = io({
-            transports: ['websocket'] // Prioritize WebSocket
+            transports: ['websocket']
         });
 
         socket.on('connect', () => {
             console.log('Socket.IO connected successfully.');
-            // Clear any previous connection errors in the feed
+
             const feedError = flingFeedList?.querySelector('.error-feed-message');
             if (feedError && feedError.textContent.includes('connection error')) {
                  feedError.remove();
-                 // Restore waiting message if list is now empty
+
                  if (flingFeedList && flingFeedList.children.length === 0) {
                      flingFeedList.innerHTML = '<li class="empty-feed-message">Waiting for fling reports...</li>';
                  }
@@ -529,12 +511,10 @@ function setupSocketIO() {
             addErrorToFeed(`Live feed connection error: ${error.message || 'Unknown error'}`);
         });
 
-        // --- Listen for the 'new_fling' event from the server ---
         socket.on('new_fling', (data) => {
             console.log('Received new_fling event:', data);
-            addFlingToFeed(data); // Add the received fling data to the UI list
+            addFlingToFeed(data);
         });
-
     } catch (error) {
         console.error("Failed to initialize Socket.IO:", error);
         addErrorToFeed('Failed to initialize live feed client.');
@@ -542,83 +522,68 @@ function setupSocketIO() {
 }
 
 function addFlingToFeed(flingData) {
-    if (!flingFeedList) return; // Ensure the list element exists
+    if (!flingFeedList) return;
 
-    // Remove the initial "Waiting..." message if it's still there
     const emptyMessage = flingFeedList.querySelector('.empty-feed-message');
     if (emptyMessage) {
         emptyMessage.remove();
     }
-    // Also remove any previous error messages shown in the feed
+
     const errorMessages = flingFeedList.querySelectorAll('.error-feed-message');
     errorMessages.forEach(msg => msg.remove());
 
     const li = document.createElement('li');
 
-    // Format the timestamp into a readable time string
-    const eventTime = new Date(flingData.timestamp * 1000); // Convert Python timestamp (seconds) to JS Date (ms)
+    const eventTime = new Date(flingData.timestamp * 1000);
     const timeString = eventTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
-    // Sanitize data received from the server before inserting into HTML
     const botName = escapeHtml(flingData.botName || 'Unknown Bot');
     const targetName = escapeHtml(flingData.target || 'Unknown Target');
-    // const serverId = escapeHtml(flingData.serverId || '???'); // Optional
 
-    // Construct the inner HTML for the list item
     li.innerHTML = `
         <span class="fling-details">
             <span class="fling-bot">${botName}</span> flung <span class="fling-target">${targetName}</span>
         </span>
         <span class="fling-time">${timeString}</span>
     `;
-
-    // Add the new item to the *top* of the list
     flingFeedList.prepend(li);
 
-    // --- Limit the number of items displayed in the feed ---
     while (flingFeedList.children.length > MAX_FEED_ITEMS) {
-        flingFeedList.lastChild.remove(); // Remove the oldest item (at the bottom)
+        flingFeedList.lastChild.remove();
     }
 }
 
 function addErrorToFeed(message) {
      if (!flingFeedList) return;
-
-     // Check if a similar error message already exists
      const existingError = Array.from(flingFeedList.querySelectorAll('.error-feed-message'))
-                              .find(li => li.textContent.includes(message.split(':')[0])); // Check based on error type
-     if (existingError) return; // Don't add duplicate error types
+                              .find(li => li.textContent.includes(message.split(':')[0]));
+     if (existingError) return;
 
      const emptyMessage = flingFeedList.querySelector('.empty-feed-message');
-     if (emptyMessage) emptyMessage.remove(); // Remove waiting message
+     if (emptyMessage) emptyMessage.remove();
 
      const li = document.createElement('li');
-     li.className = 'error-feed-message'; // Use a distinct class for styling errors
+     li.className = 'error-feed-message';
      li.textContent = message;
-     flingFeedList.prepend(li); // Add error to the top
+     flingFeedList.prepend(li);
 
-     // Limit total items including errors
      while (flingFeedList.children.length > MAX_FEED_ITEMS) {
          flingFeedList.lastChild.remove();
      }
 }
 
-// Basic HTML escaping function to prevent XSS vulnerabilities
-function escapeHtml(unsafe) {
-    // Return input directly if it's not a string
+function escapeHtml(unsafe) 
+{
     if (typeof unsafe !== 'string') return unsafe;
-
-    // Replace special HTML characters with their corresponding entities
     return unsafe
-         .replace(/&/g, "&")  // Replace & with &
-         .replace(/</g, "<")   // Replace < with <
-         .replace(/>/g, ">")   // Replace > with >
+         .replace(/&/g, "&")
+         .replace(/</g, "<")
+         .replace(/>/g, ">")
          .replace(/"/g, '"')
          .replace(/'/g, "'");
 }
 
 
-// --- Event Listeners (UNCHANGED) ---
 
 toggleJsonBtn?.addEventListener('click', () => {
     if (jsonPreContainer) {
@@ -642,15 +607,15 @@ copyJsonBtn?.addEventListener('click', () => {
     try {
          let dataToCopy = [];
          if (Array.isArray(previousReservationsData)) {
-             dataToCopy = [...previousReservationsData];
-             const sortFunctions = { /* ... sort functions ... */
+            dataToCopy = [...previousReservationsData];
+            const sortFunctions = {
                 timestamp: (a, b) => (b.timestamp || 0) - (a.timestamp || 0), players: (a, b) => (b.currentPlayerCount ?? -1) - (a.currentPlayerCount ?? -1), region: (a, b) => (a.region || '').localeCompare(b.region || ''), id: (a, b) => (a.serverId || '').localeCompare(b.serverId || '')};
-             if (sortFunctions[currentSortKey]) dataToCopy.sort(sortFunctions[currentSortKey]);
-             else dataToCopy.sort(sortFunctions.timestamp);
-         } else {
-             dataToCopy = previousReservationsData;
-         }
-
+            if (sortFunctions[currentSortKey]) dataToCopy.sort(sortFunctions[currentSortKey]);
+            else dataToCopy.sort(sortFunctions.timestamp);
+        } else {
+            dataToCopy = previousReservationsData;
+        }
+        
         const jsonTextToCopy = JSON.stringify(dataToCopy, null, 2);
         navigator.clipboard.writeText(jsonTextToCopy).then(() => {
             copyJsonBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
@@ -720,23 +685,19 @@ themeSelectorEl?.addEventListener('change', () => {
 if (gradientColorPicker1 && gradientColorPicker2) {
     gradientColorPicker1.addEventListener('input', handleGradientChange);
     gradientColorPicker2.addEventListener('input', handleGradientChange);
-} else {
+} 
+else
+{
     console.error("Gradient color pickers not found!");
 }
 
-
-// --- Initialization (MODIFIED) ---
 document.addEventListener('DOMContentLoaded', () => {
     console.log("DOM fully loaded. Initializing TCD Dashboard.");
-    setupGradientSelector(); // Create preset gradient swatches
-    loadThemePreference();   // Load and apply saved theme
-    loadGradientPreference();// Load and apply saved gradient
-    setInitialLoadingState(); // Set UI to loading state
-
-    // Start HTTP polling for stats/reservations
-    updateData(); // Initial fetch
-    setInterval(updateData, UPDATE_INTERVAL); // Set up regular polling
-
-    // Initialize Socket.IO connection for live feed
-    setupSocketIO(); // <-- ADDED: Call Socket.IO setup
+    setupGradientSelector();
+    loadThemePreference();
+    loadGradientPreference();
+    setInitialLoadingState();
+    updateData();
+    setInterval(updateData, UPDATE_INTERVAL);
+    setupSocketIO();
 });
