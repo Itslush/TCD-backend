@@ -158,19 +158,29 @@ input.gradient-color-picker { /* Custom Picker Style */
     height: 20px;
     background-color: transparent;
     border: 2px solid var(--border-color);
-    border-radius: 50%;
+    border-radius: 50%; /* Make the outer input circular */
     cursor: pointer;
-    padding: 0;
+    padding: 0; /* Remove default padding */
+    /* Add box-sizing for consistency */
+    box-sizing: border-box;
 }
+/* Ensure the inner color part fills the input */
 input.gradient-color-picker::-webkit-color-swatch {
-    border-radius: 50%;
+    border-radius: 50%; /* Match parent's border-radius */
     border: none;
+    /* NEW: Force swatch to fill */
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box; /* Include border in size if any was added */
 }
 input.gradient-color-picker::-moz-color-swatch {
-    border-radius: 50%;
+    border-radius: 50%; /* Match parent's border-radius */
     border: none;
+    /* NEW: Force swatch to fill */
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box; /* Include border in size if any was added */
 }
-
 
 .top-auth-controls {
     flex-shrink: 0; /* Prevent shrinking */

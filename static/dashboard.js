@@ -367,7 +367,6 @@ function findPresetByColors(color1, color2) {
      return PREDEFINED_GRADIENTS.find(g => g.color1 === color1 && g.color2 === color2);
 }
 
-// Updated applyGradient - applies colors and manages preset highlights
 function applyGradient(color1, color2) {
     const gradientValue = `linear-gradient(90deg, ${color1} 0%, ${color2} 100%)`;
     console.log("Applying gradient:", gradientValue);
@@ -380,14 +379,21 @@ function applyGradient(color1, color2) {
         gradientColorPicker2.value = color2;
     }
 
-    // Check if the applied colors match a preset and highlight it
-    const matchingPreset = findPresetByColors(color1, color2);
     const swatches = gradientSelectorContainerEl?.querySelectorAll('.gradient-swatch');
     swatches?.forEach(swatch => {
-        const isActive = matchingPreset && swatch.dataset.gradientId === matchingPreset.id;
-        swatch.classList.toggle('active', isActive);
-        swatch.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+        swatch.classList.remove('active');
+        swatch.setAttribute('aria-pressed', 'false');
     });
+
+    const matchingPreset = findPresetByColors(color1, color2);
+    if (matchingPreset) {
+        swatches?.forEach(swatch => {
+            if (swatch.dataset.gradientId === matchingPreset.id) {
+                swatch.classList.add('active');
+                swatch.setAttribute('aria-pressed', 'true');
+            }
+        });
+    }
 }
 
 function loadGradientPreference() {
