@@ -385,7 +385,7 @@ function addFlingToFeed(flingData) {
         <span class="fling-details">
             <span class="fling-bot">${botName}</span> flung
             <span class="fling-target">${targetName}</span>
-            <span class="fling-server">(Server: ${serverId})</span> {/* Added server ID here */}
+            <span class="fling-server">(Server: ${serverId})</span> 
         </span>
         <span class="fling-time">${timeString}</span>
     `;
@@ -465,9 +465,9 @@ function addChatToFeed(logData) {
 
     li.innerHTML = `
         <div class="chat-meta">
-            <div> {/* Optional grouping div */}
+            <div> 
                 <span class="chat-player">${playerName}:</span>
-                <span class="chat-server">(Server: ${serverId})</span> {/* Added server ID here */}
+                <span class="chat-server">(Server: ${serverId})</span> 
             </div>
             <span class="chat-timestamp">${timeString}</span>
         </div>
