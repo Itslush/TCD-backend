@@ -302,9 +302,37 @@ h1::after {
     transform: scale(1.08);
 }
 
-.charts-grid {}
-.chart-container {}
-.chart-container h3 {}
+.charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 25px;
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+.chart-container {
+    position: relative;
+    background-color: var(--card-bg);
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    height: 350px;
+    display: flex;
+    flex-direction: column;
+}
+.chart-title {
+    text-align: center;
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: var(--text-muted-color);
+    font-weight: 500;
+    font-size: 1.1em;
+    flex-shrink: 0;
+}
+.chart-container canvas {
+    flex-grow: 1;
+    min-height: 0;
+}
+
 
 @keyframes skeleton-loading {
     0% { background-position: -200px 0; }
@@ -694,8 +722,6 @@ pre#json-pre-container {
     background-color: transparent;
 }
 
-pre#json-pre-container.hidden {}
-
 #reservations-container {
     padding: 10px; font-family: var(--code-font-family);
     font-size: 0.9em; line-height: 1.5;
@@ -864,6 +890,8 @@ pre#json-pre-container.hidden {}
     .gradient-separator { font-size: 1.1em; }
     .collapsible-summary { font-size: 1.1em; padding: 12px 15px; }
     .collapsible-section > *:not(summary) { padding: 15px; }
+    .chart-container { height: 300px; padding: 15px;} /* Adjust chart height for smaller screens */
+    .chart-title { font-size: 1em; margin-bottom: 10px; }
 
 
 }
@@ -924,5 +952,8 @@ pre#json-pre-container.hidden {}
     .json-controls { gap: 5px; }
     .control-btn { padding: 5px 8px; font-size: 0.85em;}
     #theme-selector { height: 30px; padding-right: 25px; background-size: 1em;}
+    .charts-grid { grid-template-columns: 1fr; gap: 20px; } /* Stack charts on smallest screens */
+    .chart-container { height: 280px; padding: 15px; } /* Further adjust chart height */
+    .chart-title { font-size: 1em; }
 
 }
