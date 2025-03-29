@@ -16,6 +16,7 @@
     --code-font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
     --transition-fast: 0.2s ease;
     --transition-base: 0.3s ease;
+    --collapsible-content-bg: var(--card-bg); /* Use card background for open content */
 }
 
 .sr-only {
@@ -796,8 +797,8 @@ pre#json-pre-container {
 .collapsible-summary {
     padding: 15px 20px;
     cursor: pointer;
-    font-weight: 600;
-    font-size: 1.2em;
+    font-weight: 500; /* Adjusted font weight */
+    font-size: 1.15em; /* Adjusted font size */
     color: var(--text-color);
     list-style: none;
     display: flex;
@@ -806,7 +807,22 @@ pre#json-pre-container {
     background-color: var(--card-bg);
     transition: background-color var(--transition-base);
     border-radius: 8px;
+    gap: 10px; /* Add gap for icon */
 }
+
+.collapsible-summary span { /* Target the span containing the title and icon */
+    display: inline-flex;
+    align-items: center;
+    gap: 10px; /* Space between icon and text */
+}
+
+.collapsible-summary span i { /* Style the icon within the summary span */
+     font-size: 0.9em; /* Adjust icon size */
+     color: var(--text-muted-color); /* Match muted text color */
+     width: 1.2em; /* Ensure consistent width */
+     text-align: center;
+}
+
 
 .collapsible-section[open] > .collapsible-summary {
     background-color: transparent;
@@ -822,13 +838,13 @@ pre#json-pre-container {
     display: none;
 }
 
-.collapsible-summary i.fa-chevron-down {
+.collapsible-summary i.details-marker { /* Target only the chevron */
     transition: transform var(--transition-fast);
     color: var(--text-muted-color);
     font-size: 0.8em;
 }
 
-.collapsible-section[open] > summary i.fa-chevron-down {
+.collapsible-section[open] > summary i.details-marker {
     transform: rotate(180deg);
 }
 
@@ -837,18 +853,19 @@ pre#json-pre-container {
     margin-top: 0;
     margin-bottom: 0;
     border-radius: 0 0 8px 8px;
-    background-color: rgba(37, 37, 41, 0.5);
+    background-color: var(--collapsible-content-bg); /* Use the defined variable */
+    border: 1px solid var(--border-color); /* Add border to content area */
+    border-top: none; /* Remove top border to avoid double line */
 }
 .collapsible-section > .charts-grid {
-     padding-top: 0;
-     padding-bottom: 0;
-     background-color: transparent;
+     padding: 20px; /* Ensure charts grid gets padding */
+     background-color: var(--collapsible-content-bg);
      border-top: none;
 }
 .collapsible-section > .json-view {
-    padding: 0 0 20px 0;
+    padding: 20px; /* Give padding back to json-view */
     border-top: none;
-    background-color: transparent;
+    background-color: var(--collapsible-content-bg);
 }
 .collapsible-section > .live-feed-section,
 .collapsible-section > .region-stats {
@@ -857,7 +874,7 @@ pre#json-pre-container {
     border: none;
     padding: 15px 20px;
     border-top: none;
-    background-color: transparent;
+    background-color: var(--collapsible-content-bg); /* Match content background */
 }
 
 #toggle-json {
@@ -890,7 +907,7 @@ pre#json-pre-container {
     .gradient-separator { font-size: 1.1em; }
     .collapsible-summary { font-size: 1.1em; padding: 12px 15px; }
     .collapsible-section > *:not(summary) { padding: 15px; }
-    .chart-container { height: 300px; padding: 15px;} /* Adjust chart height for smaller screens */
+    .chart-container { height: 300px; padding: 15px;}
     .chart-title { font-size: 1em; margin-bottom: 10px; }
 
 
@@ -952,8 +969,8 @@ pre#json-pre-container {
     .json-controls { gap: 5px; }
     .control-btn { padding: 5px 8px; font-size: 0.85em;}
     #theme-selector { height: 30px; padding-right: 25px; background-size: 1em;}
-    .charts-grid { grid-template-columns: 1fr; gap: 20px; } /* Stack charts on smallest screens */
-    .chart-container { height: 280px; padding: 15px; } /* Further adjust chart height */
+    .charts-grid { grid-template-columns: 1fr; gap: 20px; }
+    .chart-container { height: 280px; padding: 15px; }
     .chart-title { font-size: 1em; }
 
 }
