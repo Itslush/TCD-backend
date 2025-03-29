@@ -188,7 +188,7 @@ def update_reservation():
             if updated:
                 logging.debug(f"Update Success: Bot '{bot_name}' updated {server_id} (status={current_reservation['status']}, players={current_reservation['currentPlayerCount']})")
             else:
-                 logging.debug(f"Heartbeat Received (No Change): Bot '{bot_name}' for {server_id}")
+                logging.debug(f"Heartbeat Received (No Change): Bot '{bot_name}' for {server_id}")
 
             response_data = current_reservation
             status_code = 200

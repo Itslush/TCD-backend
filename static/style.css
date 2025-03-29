@@ -16,7 +16,7 @@
     --code-font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
     --transition-fast: 0.2s ease;
     --transition-base: 0.3s ease;
-    --collapsible-content-bg: var(--card-bg); /* Use card background for open content */
+    --collapsible-content-bg: var(--card-bg);
 }
 
 .sr-only {
@@ -304,11 +304,9 @@ h1::after {
 }
 
 .charts-grid {
-    display: grid; /* Keep grid layout */
-    /* Let grid manage columns; auto-fit will make single item take full width */
+    display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 25px;
-    /* Remove margin-top/bottom if content area provides padding */
     margin-top: 0;
     margin-bottom: 0;
 }
@@ -318,10 +316,9 @@ h1::after {
     padding: 20px;
     border-radius: 8px;
     border: 1px solid var(--border-color);
-    height: 350px; /* Consider making this flexible or adjusting */
+    height: 350px;
     display: flex;
     flex-direction: column;
-    /* Removed grid span as grid layout handles single item */
 }
 .chart-title {
     text-align: center;
@@ -369,15 +366,12 @@ h1::after {
 }
 
 .region-stats {
-    /* background-color: var(--bg-color); */ /* Handled by collapsible */
     padding: 20px 25px;
     border-radius: 8px;
-    /* border: 1px solid var(--border-color); */ /* Handled by collapsible */
-    /* margin-bottom: 40px; */ /* Handled by collapsible */
     transition: border-color var(--transition-base);
 }
 .region-stats.error {
-    border-color: var(--error-color); /* Keep error state */
+    border-color: var(--error-color);
     background-color: rgba(244, 67, 54, 0.1);
 }
 
@@ -430,12 +424,8 @@ h1::after {
 }
 
 .live-feed-section {
-    /* background-color: var(--bg-color); */ /* Handled by collapsible */
     padding: 20px 25px;
     border-radius: 8px;
-    /* border: 1px solid var(--border-color); */ /* Handled by collapsible */
-    /* margin-top: 40px; */ /* Handled by collapsible */
-    /* margin-bottom: 40px; */ /* Handled by collapsible */
 }
 
 .live-feed-section h2:not(.live-feed-header-with-controls) {
@@ -668,8 +658,7 @@ h1::after {
 #chat-search:focus::-webkit-search-cancel-button { opacity: 1; }
 
 .json-view {
-    /* margin-top: 40px; */ /* Handled by collapsible */
-    padding: 20px; /* Give padding back */
+    padding: 20px;
 }
 .json-header {
     display: flex;
@@ -787,33 +776,28 @@ pre#json-pre-container {
     animation: pulse 1.5s infinite cubic-bezier(0.66, 0, 0, 1);
 }
 
-
-/* --- Collapsible Section Styling --- */
 .collapsible-section {
     margin-bottom: 20px;
-    border: 1px solid transparent; /* Default: no border */
+    border: 1px solid transparent;
     border-radius: 8px;
-    background-color: transparent; /* Let children control bg */
-    overflow: hidden; /* Important for border-radius */
+    background-color: transparent;
+    overflow: hidden;
     transition: border-color var(--transition-base), background-color var(--transition-base);
 }
 
-/* Style for the CLOSED section */
 .collapsible-section:not([open]) {
-    background-color: var(--card-bg); /* Shows summary background when closed */
+    background-color: var(--card-bg);
 }
-/* Hide potential borders on summary when closed */
+
 .collapsible-section:not([open]) > .collapsible-summary {
     border-color: transparent;
 }
 
-/* Style for the OPEN section - provides the main outline */
 .collapsible-section[open] {
-    border-color: var(--border-color); /* Add border when open */
-    background-color: var(--collapsible-content-bg); /* Background for the content area */
+    border-color: var(--border-color);
+    background-color: var(--collapsible-content-bg);
 }
 
-/* Base style for the summary (clickable header) */
 .collapsible-summary {
     padding: 15px 20px;
     cursor: pointer;
@@ -825,33 +809,28 @@ pre#json-pre-container {
     justify-content: space-between;
     align-items: center;
     transition: background-color var(--transition-base);
-    border-radius: 8px; /* Always have radius, modified when open */
+    border-radius: 8px;
     gap: 10px;
-    border: 1px solid transparent; /* Placeholder, adjusted by state */
-    position: relative; /* For stacking */
-    z-index: 1; /* Keep above content background initially */
-    /* Background color is handled by section state */
+    border: 1px solid transparent;
+    position: relative;
+    z-index: 1;
 }
 
-/* Style for the summary within an OPEN section */
 .collapsible-section[open] > .collapsible-summary {
-    background-color: var(--card-bg); /* Keep summary distinct */
-    border-bottom: 1px solid var(--border-color); /* Separator */
-    border-radius: 8px 8px 0 0; /* Top corners rounded */
-    /* Use negative margin to visually merge borders with the section's border */
+    background-color: var(--card-bg);
+    border-bottom: 1px solid var(--border-color);
+    border-radius: 8px 8px 0 0;
     margin: -1px -1px 0 -1px;
-    padding-bottom: calc(15px - 1px); /* Adjust padding to account for border */
-    border-left-color: transparent; /* Hide side borders as section handles it */
+    padding-bottom: calc(15px - 1px);
+    border-left-color: transparent;
     border-right-color: transparent;
     border-top-color: transparent;
 }
 
-/* Hover effect for summary */
 .collapsible-summary:hover {
-    background-color: var(--highlight-bg); /* Apply hover always */
+    background-color: var(--highlight-bg);
 }
 
-/* Icon Styling within Summary */
 .collapsible-summary span {
     display: inline-flex;
     align-items: center;
@@ -863,7 +842,7 @@ pre#json-pre-container {
     width: 1.2em;
     text-align: center;
 }
-.collapsible-summary i.details-marker { /* Chevron */
+.collapsible-summary i.details-marker {
     transition: transform var(--transition-fast);
     color: var(--text-muted-color);
     font-size: 0.8em;
@@ -872,26 +851,22 @@ pre#json-pre-container {
     transform: rotate(180deg);
 }
 .collapsible-summary::-webkit-details-marker {
-    display: none; /* Hide default marker */
+    display: none;
 }
 
-/* Style for the CONTENT area within an OPEN section */
 .collapsible-section > *:not(summary) {
     padding: 20px;
-    margin: 0; /* Remove default margins */
-    border-radius: 0 0 8px 8px; /* Bottom corners rounded */
-    border: none; /* Content doesn't need its own border */
-    position: relative; /* For stacking */
-    background-color: transparent; /* Inherit from section[open] */
+    margin: 0;
+    border-radius: 0 0 8px 8px;
+    border: none;
+    position: relative;
+    background-color: transparent;
 }
 
-/* Specific padding adjustments if needed after removing margins/borders */
 .collapsible-section > .charts-grid { padding: 20px; }
 .collapsible-section > .json-view { padding: 20px; }
 .collapsible-section > .live-feed-section { padding: 15px 20px; }
 .collapsible-section > .region-stats { padding: 15px 20px; }
-/* --- End Collapsible Section Styling --- */
-
 
 #toggle-json {
     display: none !important;
