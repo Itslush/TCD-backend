@@ -8,7 +8,7 @@ from collections import defaultdict, deque
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
-app.config['SECRET_KEY'] = os.environ.get('FLASK_SECRET_KEY', 'a_very_strong_default_secret_key_for_dev_!@#$%')
+app.config['SECRET_KEY'] = os.environ.get('FLASK_SECRET_KEY', 'may_criminality_die_i_beg')
 
 SERVER_RESERVATION_TIMEOUT = 30
 IN_SERVER_TIMEOUT_SECONDS = 30 * 60
